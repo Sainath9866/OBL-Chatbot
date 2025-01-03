@@ -5,9 +5,32 @@ import pandas as pd
 import google.generativeai as genai
 from typing import List, Optional
 import os
-import re
 
-# Pydantic models for request/response
+
+
+# Initialize FastAPI app and CORS
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+# Configure Gemini
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyAyNic2Pn7o3oI573GR4EU2wX_-T-gT6xA')
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-pro')
+
+class TileResponse(BaseModel):
+    name: str
+    price: float
+    size: str
+    url: str
+    image_path: str
+    category: str
+
 class Message(BaseModel):
     type: str
     content: str
@@ -20,171 +43,230 @@ class ChatResponse(BaseModel):
     response: str
     suggested_options: Optional[List[str]] = None
 
-# Initialize FastAPI app
-app = FastAPI(
-    title="Tile Store Chatbot API",
-    description="API for interacting with a tile store chatbot",
-    version="1.0.0"
-)
+class SizeRequest(BaseModel):
+    category: str
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+class TileQuery(BaseModel):
+    text: str
 
-# Configure Gemini
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyAyNic2Pn7o3oI573GR4EU2wX_-T-gT6xA')
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-pro')
-
-def clean_price(price_str):
-    """Extract numeric price from price string"""
-    try:
-        if pd.isna(price_str):
-            return None
-        # Extract number from strings like "MRP ? 70 /- Sq.ft"
-        match = re.search(r'(\d+)', str(price_str))
-        if match:
-            return float(match.group(1))
-        return None
-    except:
-        return None
-
-def clean_size(size_str):
-    """Extract size information from size string"""
-    try:
-        if pd.isna(size_str) or size_str == 'false ft':
-            return None
-        # Extract size from strings like "Size 300x450 mm ft"
-        match = re.search(r'(\d+x\d+)', str(size_str))
-        if match:
-            return match.group(1)
-        return None
-    except:
-        return None
+# Global DataFrame
+df = None
 
 def load_tiles_data():
-    """Load and process the tiles data"""
+    """
+    Load and return the tiles data. If the global df is already loaded,
+    return that instead of reloading from file.
+    """
+    global df
+    if df is not None and not df.empty:
+        return df
+        
     try:
-        # Read CSV file
-        df = pd.read_csv('All-Tiles.csv')
-        
-        # Remove empty rows
-        df = df.dropna(how='all')
-        
-        # Rename columns to match the actual CSV structure
-        df.columns = ['Category', 'Tile_Name', 'Price', 'Size']
-        
-        # Clean price and size data
-        df['Price_Value'] = df['Price'].apply(clean_price)
-        df['Size_Value'] = df['Size'].apply(clean_size)
-        
-        # Remove rows with invalid prices
-        df = df[df['Price_Value'].notna()]
-        
+        df = pd.read_csv('tiles_2_final_data.csv')
+        df['Price'] = df['Price'].str.extract(r'₹\s*(\d+)').astype(float)
+        df['Category'] = df['Category'].str.lower()
         return df
     except Exception as e:
         print(f"Error loading data: {e}")
-        return pd.DataFrame(columns=['Category', 'Tile_Name', 'Price', 'Size', 'Price_Value', 'Size_Value'])
+        return pd.DataFrame()
 
-def generate_context(df: pd.DataFrame, query: str) -> str:
-    """Generate context for the chatbot based on the query"""
-    try:
-        context = "Available tile information:\n\n"
-        query = query.lower()
+# Initialize data when the application starts
+@app.on_event("startup")
+async def startup_event():
+    global df
+    df = load_tiles_data()
+
+def generate_context(query: str) -> str:
+    """Generate focused context based on query"""
+    global df
+    if df is None or df.empty:
+        return ""
         
-        if "price" in query or "cost" in query:
-            context += "Price ranges by category:\n"
-            for category in df['Category'].unique():
-                if pd.isna(category):
-                    continue
-                category_df = df[df['Category'] == category]
-                prices = category_df['Price_Value'].dropna()
-                if not prices.empty:
-                    context += f"{category}: ₹{prices.min():.0f} to ₹{prices.max():.0f} per sq.ft\n"
-        
-        for category in df['Category'].unique():
-            if pd.isna(category):
-                continue
-            if category.lower() in query.lower():
-                tiles = df[df['Category'] == category]
-                context += f"\n{category} Options:\n"
-                for _, tile in tiles.head().iterrows():
-                    if pd.notna(tile['Price_Value']):
-                        size_info = f" - {tile['Size_Value']}" if pd.notna(tile['Size_Value']) else ""
-                        context += f"- {tile['Tile_Name']}{size_info} - ₹{tile['Price_Value']:.0f}/sq.ft\n"
-        
-        return context
-    except Exception as e:
-        print(f"Error generating context: {e}")
-        return "Error generating tile information. Please try again."
+    # Extract key terms from query
+    terms = query.lower().split()
+    
+    relevant_rows = df
+    
+    # Filter by category if mentioned
+    if any(cat in query.lower() for cat in df['Category'].unique()):
+        category = next(cat for cat in df['Category'].unique() if cat in query.lower())
+        relevant_rows = df[df['Category'] == category]
+    
+    # Filter by price range if mentioned
+    if 'budget' in query.lower() or 'cheap' in query.lower():
+        relevant_rows = df[df['Price'] <= 100]
+    elif 'premium' in query.lower() or 'expensive' in query.lower():
+        relevant_rows = df[df['Price'] > 100]
+    
+    # Return concise context
+    context_items = relevant_rows.head(5).apply(
+        lambda x: f"{x['Name']}: ₹{x['Price']:.0f}/sq ft ({x['Size']})", 
+        axis=1
+    ).tolist()
+    
+    return '; '.join(context_items)
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     """Chat endpoint for tile store assistance"""
+    global df
     try:
-        # Load and validate data
-        df = load_tiles_data()
-        if df.empty:
+        # Check if data is loaded
+        if df is None or df.empty:
             return ChatResponse(
-                response="I apologize, but I'm currently unable to access the tile database. Please try again later.",
+                response="Sorry, tile database is currently unavailable.",
                 suggested_options=None
             )
-        
+
         # Generate context
-        context = generate_context(df, request.message)
-        
-        # Format conversation history
-        conversation = "\n".join([
-            f"{'Assistant' if msg.type == 'bot' else 'User'}: {msg.content}"
-            for msg in request.conversation_history
-        ])
-        
+        context = generate_context(request.message)
+
         # Generate prompt
         prompt = f"""
         Context: {context}
-        Previous conversation: {conversation}
         User: {request.message}
-        Instructions:
-        - Act as a knowledgeable tile store assistant
-        - Keep responses concise and focused on tiles
-        - Mention that prices are subject to change
-        - Suggest similar alternatives when discussing specific tiles
-        """
         
+        Instructions:
+        1. You are a tile store expert. Give direct, brief answers in 2-3 sentences max.
+        2. Format prices as ₹XX.
+        3. If mentioning a tile, include: name, price, size only.
+        4. For alternatives, suggest max 2 options.
+        5. Add "Prices may vary" only when discussing specific prices.
+        """
+
         # Generate response
         response = model.generate_content(prompt)
-        
+
         # Generate suggested options
         suggested_options = []
-        if any(word in request.message.lower() for word in ["category", "types"]):
-            suggested_options = [cat for cat in df['Category'].unique() if pd.notna(cat)]
+        if "category" in request.message.lower():
+            suggested_options = df['Category'].unique().tolist()[:3]
         elif "price" in request.message.lower():
-            suggested_options = ["Budget Tiles (Below ₹100)", "Premium Tiles (Above ₹100)", "View Price List"]
-        
+            suggested_options = ["Budget (Below ₹100)", "Premium (Above ₹100)"]
+
         return ChatResponse(
             response=response.text,
             suggested_options=suggested_options if suggested_options else None
         )
-    
+
     except Exception as e:
         print(f"Error in chat endpoint: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"An error occurred while processing your request: {str(e)}"
+            detail="Sorry, something went wrong. Please try again."
         )
 
-# Add a test endpoint
-@app.get("/test")
-async def test_endpoint():
-    """Test endpoint to verify API is working"""
-    df = load_tiles_data()
-    return {
-        "status": "API is running",
-        "data_loaded": not df.empty,
-        "categories": [cat for cat in df['Category'].unique() if pd.notna(cat)]
-    }
+@app.post("/size")
+async def get_sizes(request: SizeRequest):
+    global df
+    try:
+        if df is None or df.empty:
+            raise HTTPException(status_code=500, detail="Tile database is not loaded")
+            
+        category = request.category.lower()
+        sizes = df[df['Category'] == category]['Size'].unique().tolist()
+        sizes = [size for size in sizes if pd.notna(size)]
+        return {"sizes": sizes}
+    except Exception as e:
+        print(f"Error in get_sizes: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/tiles")
+async def get_tiles(category: str, size: str):
+    global df
+    try:
+        if df is None or df.empty:
+            raise HTTPException(status_code=500, detail="Tile database is not loaded")
+            
+        filtered_df = df[
+            (df['Category'] == category) &
+            (df['Size'] == size)
+        ]
+        
+        if filtered_df.empty:
+            raise HTTPException(status_code=404, detail="No tiles found matching the criteria")
+            
+        # Convert the filtered data to the response format
+        tiles = []
+        for _, row in filtered_df.iterrows():
+            tile = TileResponse(
+                name=row['Name'],
+                price=row['Price'],
+                size=row['Size'],
+                url=row['URL'],
+                image_path=row['Image Path'],
+                category=row['Category']
+            )
+            tiles.append(tile.dict())
+            
+        return {"tiles": tiles}
+        
+    except Exception as e:
+        print(f"Error in get_tiles: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class TileQuery(BaseModel):
+    text: str
+
+@app.post("/name")
+async def name_endpoint(query: TileQuery):
+    global df
+    try:
+        if df is None or df.empty:
+            raise HTTPException(status_code=500, detail="Tile database is not loaded")
+            
+        query_lower = query.text.lower()
+        df_copy = df.copy()
+        df_copy['Name_lower'] = df_copy['Name'].str.lower()
+        
+        matches = df_copy[df_copy['Name_lower'].str.contains(query_lower, na=False, regex=False)]
+        
+        if len(matches) > 0:
+            tile_info = matches.iloc[0].to_dict()
+            tile_info = {k: ('' if pd.isna(v) else v) for k, v in tile_info.items()}
+            
+            return {
+                "status": "success",
+                "message": "Tile information found",
+                "data": {
+                    "name": tile_info['Name'],
+                    "url": tile_info['URL'],
+                    "size": tile_info['Size'],
+                    "price": tile_info['Price'],
+                    "image_url": tile_info['Image URL'],
+                    "image_path": tile_info['Image Path'],
+                    "category": tile_info['Category']
+                }
+            }
+        
+        return {
+            "status": "not_found",
+            "message": "No matching tile found",
+            "data": None
+        }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/general")
+async def general_endpoint(query: dict):
+    try:
+        user_text = query.get('text', '')
+        if not user_text:
+            raise HTTPException(status_code=400, detail="Query text is required")
+        
+        # Check if query contains tile names
+        if any(tile_name.lower() in user_text.lower() for tile_name in df['Name']):
+            response = await name_endpoint(query)
+        else:
+            # Route to chat or other endpoints
+            response = await chat_endpoint(query)
+        
+        return {
+            "endpoint_used": "name" if response.get("data") else "chat",
+            "response": response,
+            "original_query": user_text
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
