@@ -6,9 +6,6 @@ import google.generativeai as genai
 from typing import List, Optional
 import os
 from pydantic import BaseModel
-from phi.agent.python import PythonAgent
-from phi.file.local.csv import CsvFile
-from phi.model.groq import Groq
 from pathlib import Path
 from dotenv import load_dotenv
 import re
@@ -513,3 +510,15 @@ async def general_endpoint(query: dict):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    # Get port from environment variable or default to 8000
+    port = int(os.environ.get("PORT", 8000))
+    
+    # Run the app with the specified host and port
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",  # Necessary for Render
+        port=port,
+        reload=False  # Set to False in production
+    )
