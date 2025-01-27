@@ -143,7 +143,7 @@ export default function ChatInterface({ setShowChat }) {
         setSelectedCategory(tileCategory);
 
         // Make request to size endpoint
-        const response = await fetch('http://127.0.0.1:8000/size', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -179,7 +179,7 @@ export default function ChatInterface({ setShowChat }) {
     // Default chat behavior for non-tile requests
     try {
       setIsLoading(true);
-      const response = await fetch('http://127.0.0.1:8000/chat', {
+      const response = await fetch('https://obl-chatbot-backend.onrender.com/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -426,7 +426,7 @@ export default function ChatInterface({ setShowChat }) {
         setIsLoading(true);
 
         // Updated request to match backend expectations
-        const response = await fetch('http://127.0.0.1:8000/size', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
