@@ -513,7 +513,7 @@ async def general_endpoint(query: dict):
 
 if __name__ == "__main__":
     # Get port from environment variable or default to 8000
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 10000))
     
     # Run the app with the specified host and port
     uvicorn.run(
