@@ -134,47 +134,47 @@ export default function ChatInterface({ setShowChat }) {
   };
 
   const sendMessageToBackend = async (userMessage) => {
-    const tileCategory = checkForTileRequest(userMessage);
+    // const tileCategory = checkForTileRequest(userMessage);
 
-    if (tileCategory) {
-      try {
-        setIsLoading(true);
-        // Set the selected category for later use
-        setSelectedCategory(tileCategory);
+    // if (tileCategory) {
+    //   try {
+    //     setIsLoading(true);
+    //     // Set the selected category for later use
+    //     setSelectedCategory(tileCategory);
 
-        // Make request to size endpoint
-        const response = await fetch('http://127.0.0.1:8000/size', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            category: tileCategory
-          })
-        });
+    //     // Make request to size endpoint
+    //     const response = await fetch('http://127.0.0.1:8000/size', {
+    //       method: 'POST',
+    //       headers: {
+    //         'Content-Type': 'application/json',
+    //       },
+    //       body: JSON.stringify({
+    //         category: tileCategory
+    //       })
+    //     });
 
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
+    //     if (!response.ok) {
+    //       throw new Error('Network response was not ok');
+    //     }
 
-        const data = await response.json();
-        return {
-          response: 'Please select a size:',
-          suggested_options: data.sizes.map(size => ({
-            label: size,
-            action: `SIZE_${size.replace(/[^0-9x]/g, '')}`
-          }))
-        };
-      } catch (error) {
-        console.error('Error:', error);
-        return {
-          response: "I apologize, but I'm having trouble fetching the tile sizes. Please try again later.",
-          suggested_options: null
-        };
-      } finally {
-        setIsLoading(false);
-      }
-    }
+    //     const data = await response.json();
+    //     return {
+    //       response: 'Please select a size:',
+    //       suggested_options: data.sizes.map(size => ({
+    //         label: size,
+    //         action: `SIZE_${size.replace(/[^0-9x]/g, '')}`
+    //       }))
+    //     };
+    //   } catch (error) {
+    //     console.error('Error:', error);
+    //     return {
+    //       response: "I apologize, but I'm having trouble fetching the tile sizes. Please try again later.",
+    //       suggested_options: null
+    //     };
+    //   } finally {
+    //     setIsLoading(false);
+    //   }
+    // }
 
     // Default chat behavior for non-tile requests
     try {

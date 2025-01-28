@@ -139,93 +139,136 @@ def clean_text(text: str) -> str:
 
 def search_tiles(df: pd.DataFrame, query: str) -> List[dict]:
     """
-    Enhanced search function with more flexible matching and broader results
+    Two-stage search function:
+    Stage 1: Quick filtering based on basic criteria
+    Stage 2: Cosine similarity ranking on filtered subset
     """
-    # Combine relevant text fields for searching
-    df['search_text'] = (
-        df['description'].apply(clean_text) + ' ' +
-        df['name'].apply(clean_text) + ' ' +
-        df['material'].apply(clean_text) + ' ' +
-        df['applications'].apply(clean_text)
-    )
-    
     query = clean_text(query)
     
-    # Create a TF-IDF vectorizer
-    vectorizer = TfidfVectorizer(stop_words='english')
+    # STAGE 1: Quick Filtering
+    # Initialize base mask
+    base_mask = pd.Series([True] * len(df), index=df.index)
+    
+    # Extract key information from query using regex
+    patterns = {
+        'price': r'(?:below|under|less than)\s*(\d+)',
+        'size': r'(\d+)[\sx*×](\d+)',
+        'material': r'(?:ceramic|porcelain|marble|granite|vitrified)',
+        'application': r'(?:bathroom|kitchen|living|bedroom|outdoor|indoor|wall|floor)',
+        'color': r'(?:white|black|grey|gray|beige|brown|blue|green|red)',
+        'finish': r'(?:matt|gloss|polished|rustic|textured)'
+    }
+    
+    # Apply first-stage filters
+    matches = {}
+    for key, pattern in patterns.items():
+        match = re.search(pattern, query)
+        if match:
+            matches[key] = match
+            
+            if key == 'price':
+                price_limit = float(match.group(1))
+                base_mask &= df['price'] <= price_limit
+            
+            elif key == 'size':
+                width, height = match.groups()
+                size_variants = [f"{width}x{height}", f"{width}×{height}", f"{width} x {height}"]
+                base_mask &= df['size'].str.contains('|'.join(size_variants), case=False, na=False, regex=True)
+            
+            elif key == 'material':
+                material = match.group()
+                base_mask &= df['material'].str.contains(material, case=False, na=False)
+            
+            elif key == 'application':
+                application = match.group()
+                base_mask &= df['applications'].str.contains(application, case=False, na=False)
+            
+            elif key == 'color':
+                color = match.group()
+                base_mask &= df['name'].str.contains(color, case=False, na=False)
+            
+            elif key == 'finish':
+                finish = match.group()
+                base_mask &= df['finish'].str.contains(finish, case=False, na=False)
+    
+    # Get filtered subset
+    filtered_df = df[base_mask].copy()
+    
+    # If filtered set is too small, use original dataset
+    if len(filtered_df) < 10:
+        filtered_df = df
+    
+    # STAGE 2: Cosine Similarity Ranking
+    # Prepare search text with weighted fields
+    filtered_df['search_text'] = (
+        (filtered_df['description'].apply(clean_text) + ' ') * 3 +  # Weight description more
+        filtered_df['name'].apply(clean_text) + ' ' +
+        filtered_df['material'].apply(clean_text) + ' ' +
+        filtered_df['applications'].apply(clean_text) + ' ' +
+        filtered_df['design_types'].apply(clean_text) + ' ' +
+        filtered_df['finish'].apply(clean_text)
+    )
+    
     try:
-        tfidf_matrix = vectorizer.fit_transform(df['search_text'].values.astype('U'))
-        query_vec = vectorizer.transform([query])
+        # Create TF-IDF vectorizer with n-grams
+        vectorizer = TfidfVectorizer(
+            stop_words='english',
+            ngram_range=(1, 3),  # Include phrases up to 3 words
+            max_features=5000
+        )
         
-        # Calculate similarity scores
+        # Calculate TF-IDF and similarity scores
+        tfidf_matrix = vectorizer.fit_transform(filtered_df['search_text'].values.astype('U'))
+        query_vec = vectorizer.transform([query])
         similarity_scores = cosine_similarity(query_vec, tfidf_matrix)[0]
         
-        # Create initial mask for filtering with lower threshold
-        mask = similarity_scores > 0.05  # Lowered threshold for more results
+        # Get top matches
+        top_indices = np.argsort(similarity_scores)[::-1][:50]  # Get top 50 matches
+        matching_tiles = filtered_df.iloc[top_indices].to_dict('records')
         
-        # Specific feature filtering
-        if any(term in query for term in ['anti-skid', 'antiskid', 'slip resistant', 'anti slip']):
-            mask &= df['search_text'].str.contains('slip-resistant|anti-skid|skid-resistant|anti slip', regex=True, case=False)
+        # Add similarity scores to results
+        for tile in matching_tiles:
+            idx = filtered_df.index[filtered_df['id'] == tile['id']].tolist()[0]
+            tile['relevance_score'] = float(similarity_scores[idx])
         
-        # Price-based filtering
-        if 'below' in query or 'under' in query:
-            price_match = re.search(r'(\d+)', query)
-            if price_match:
-                price_limit = float(price_match.group(1))
-                mask &= df['price'] <= price_limit
+        # Filter out low relevance scores
+        matching_tiles = [tile for tile in matching_tiles if tile['relevance_score'] > 0.05]
         
-        # Application-based filtering
-        if 'corridor' in query or 'hallway' in query:
-            mask &= df['applications'].str.contains('corridor|hallway', case=False, na=False)
+        return matching_tiles
         
-        # Get matching tiles
-        matching_indices = np.where(mask)[0]
-        if len(matching_indices) > 0:
-            # Sort by similarity, but return more results
-            matching_indices = matching_indices[np.argsort(similarity_scores[matching_indices])[::-1]]
-            top_matches = df.iloc[matching_indices[:100]].to_dict('records')  # Increased to 10 results
-        else:
-            # Fallback: if no matches, do a broader search
-            if 'below' in query and price_match:
-                # If price-based search fails, show all cheap tiles
-                top_matches = df[df['price'] <= price_limit].sort_values('price').head(50).to_dict('records')
-            elif 'corridor' in query:
-                # If corridor search fails, show tiles suitable for corridors
-                top_matches = df[df['applications'].str.contains('corridor|hallway', case=False, na=False)].head(50).to_dict('records')
-            else:
-                top_matches = []
-            
-        return top_matches
     except Exception as e:
-        print(f"Search error: {str(e)}")
-        return []
+        print(f"Error in similarity calculation: {str(e)}")
+        return filtered_df.head(50).to_dict('records')  # Fallback to filtered results
 
 def format_answer(tiles: List[dict]) -> str:
     """
-    Format the answer based on the found tiles
+    Format the answer with relevance scores
     """
     if not tiles:
         return "I couldn't find any tiles matching your requirements. Could you please try with different criteria?"
     
-    answer = "Based on your requirements, here are the most relevant tiles I found:\n\n"
+    answer = f"Found {len(tiles)} relevant tiles. Here are the best matches:\n\n"
     
     for i, tile in enumerate(tiles, 1):
-        answer += f"{i}. **{tile['name']}** - {tile['material']} tile"
-        if tile['design_types']:
-            answer += f" with {tile['design_types']} design"
-        answer += f", {tile['finish']}, {tile['size']} size"
-        if tile['price'] > 0:
-            answer += f", priced at {tile['price']} {tile['price_unit']}"
-        answer += ".\n"
+        relevance = round(tile.get('relevance_score', 0) * 100, 1)
+        answer += f"{i}. **{tile['name']}** (Match: {relevance}%)\n"
         
-        # Add description if available
         if tile['description']:
             desc = tile['description'][:200]
-            answer += f"   Key features: {desc}...\n"
+            answer += f"   Description: {desc}...\n"
+        
+        answer += f"   Material: {tile['material']}\n"
+        answer += f"   Size: {tile['size']}\n"
+        
+        if tile['price'] > 0:
+            answer += f"   Price: {tile['price']} {tile['price_unit']}\n"
+        
+        if tile['applications']:
+            answer += f"   Recommended for: {tile['applications']}\n"
+        
         answer += "\n"
     
     return answer
-
 
 import google.generativeai as genai
 
@@ -512,12 +555,13 @@ async def general_endpoint(query: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    # Change default to 10000 to match Render's expectations
+    # Get port from environment variable or default to 8000
     port = int(os.environ.get("PORT", 10000))
-   
+    
+    # Run the app with the specified host and port
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
+        host="0.0.0.0",  # Necessary for Render
         port=port,
-        reload=False
+        reload=False  # Set to False in production
     )
