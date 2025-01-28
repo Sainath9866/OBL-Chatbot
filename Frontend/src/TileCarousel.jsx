@@ -18,7 +18,7 @@ const TileCarousel = ({ category, size }) => {
           size,
         });
 
-        const response = await fetch(`http://127.0.0.1:8000/tiles?${searchParams}`, {
+        const response = await fetch(`https://obl-chatbot-backend.onrender.com/tiles?${searchParams}`, {
           method: 'POST',
         });
 
