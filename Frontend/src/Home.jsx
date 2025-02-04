@@ -26,7 +26,7 @@ function App() {
 
           {/* Chatbot Icon */}
           <div
-            className="w-16 h-16 flex justify-center items-center rounded-full border-4 border-green-100 cursor-pointer hover:scale-105 transition-transform"
+            className="w-16 h-16 flex justify-center items-center rounded-full border-4 border-green-800 cursor-pointer hover:scale-105 transition-transform"
             onClick={handleChatButtonClick}
           >
             <img

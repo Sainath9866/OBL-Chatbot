@@ -329,7 +329,7 @@ async def chat_endpoint(request: QuestionRequest):
     except Exception as e:
         print(f"Error in chat endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-        
+       
 @app.post("/size")
 async def get_sizes(request: SizeRequest):
     global df

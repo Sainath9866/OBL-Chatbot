@@ -10,8 +10,8 @@ import SuggestedOptionsViewer from './Render';
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 12) return "Good morning";
-  if (hour >= 12 && hour < 17) return "Good afternoon";
-  if (hour >= 17 && hour < 22) return "Good evening";
+  if (hour >= 12 && hour < 16) return "Good afternoon";
+  if (hour >= 16 && hour < 20) return "Good evening";
   return "Good night";
 };
 
@@ -225,23 +225,23 @@ export default function ChatInterface({ setShowChat }) {
 
       const data = await sendMessageToBackend(userMessage);
 
-      const newMessages = data?.suggested_options?.every(option => 
+      const newMessages = data?.suggested_options?.every(option =>
         option?.label?.includes('x') ?? false
       )
         ? [{
-            type: 'bot',
-            content: data.response,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            options: data.suggested_options || []
-          }]
+          type: 'bot',
+          content: data.response,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          options: data.suggested_options || []
+        }]
         : [{
-            type: 'bot',
-            content: <SuggestedOptionsViewer 
-            suggested_options={data.suggested_options} 
-            setCurrentAction={setCurrentAction} 
+          type: 'bot',
+          content: <SuggestedOptionsViewer
+            suggested_options={data.suggested_options}
+            setCurrentAction={setCurrentAction}
           />,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          }];
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }];
 
 
       setMessages(prev => [...prev, ...newMessages]);
@@ -288,7 +288,19 @@ export default function ChatInterface({ setShowChat }) {
         },
         {
           type: 'bot',
-          content: 'You can Contact us 📞 on \n📞 1800-208-1015 \nOR write to us at jegatheeswaran.palsamy@orientbell.com',
+          content: (
+            <>
+              Thank you for choosing Orientbell Tiles.For more details please visit{' '}
+              <a 
+                href="https://www.orientbell.com/contact-us" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: 'blue', textDecoration: 'underline' }}
+              >
+                https://www.orientbell.com/contact-us
+              </a>
+            </>
+          ),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         },
         {
@@ -314,7 +326,19 @@ export default function ChatInterface({ setShowChat }) {
         },
         {
           type: 'bot',
-          content: <ContactForm />,
+          content: (
+            <>
+              Thank you for choosing Orientbell Tiles.For more details please visit{' '}
+              <a 
+                href="https://www.orientbell.com/careers" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: 'blue', textDecoration: 'underline' }}
+              >
+                https://www.orientbell.com/careers
+              </a>
+            </>
+          ),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -328,7 +352,19 @@ export default function ChatInterface({ setShowChat }) {
         },
         {
           type: 'bot',
-          content: 'Orient Bell Tiles is a well-known tile manufacturing company that offers a wide range of high-quality tiles for various applications, including residential and commercial spaces.',
+          content: (
+            <>
+              Orient Bell Tiles is a well-known tile manufacturing company that offers a wide range of high-quality tiles for various applications, including residential and commercial spaces.Thank you for choosing Orientbell Tiles.For more details please visit{' '}
+              <a 
+                href="https://www.orientbell.com/about-us" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: 'blue', textDecoration: 'underline' }}
+              >
+                https://www.orientbell.com/about-us
+              </a>
+            </>
+          ),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         },
         {
@@ -354,9 +390,34 @@ export default function ChatInterface({ setShowChat }) {
         },
         {
           type: 'bot',
-          content: <ContactForm />,
+          content: (
+            <>
+              Thank you for choosing Orientbell Tiles.For more details please visit{' '}
+              <a 
+                href="https://www.orientbell.com/store-locator" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: 'blue', textDecoration: 'underline' }}
+              >
+                https://www.orientbell.com/store-locator
+              </a>
+            </>
+          ),
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        },
+        {
+          type: 'bot',
+          content: 'Kindly choose one of the options👇',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          options: [
+            { label: 'Show Tiles 🧱', action: 'SHOW_TILES' },
+            { label: 'Store Locator 🏪', action: 'STORE_LOCATOR' },
+            { label: 'About us 🤝', action: 'ABOUT_US' },
+            { label: 'Contact us 📞', action: 'CONTACT_US' },
+            { label: 'Careers 🧑🏻‍💼', action: 'Careers 🧑🏻‍💼' }
+          ]
         }
+    
       ]);
     } else if (action === 'SHOW_MORE_TILES') {
       setVisibleCategories(prev => Math.min(prev + 9, allCategories.length));
@@ -578,7 +639,7 @@ export default function ChatInterface({ setShowChat }) {
         {/* Input Area */}
         <div className="p-3 md:p-4 border-t shrink-0">
           <div className="flex gap-2">
-            
+
             <input
               type="text"
               value={input}
