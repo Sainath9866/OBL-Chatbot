@@ -29,7 +29,7 @@ const initialMessage = {
     { label: 'Contact us 📞', action: 'CONTACT_US' },
     { label: 'Download Catalogue 📑', action: 'DOWNLOAD_CATALOGUE' },
     { label: 'Careers 🧑🏻‍💼', action: 'Careers 🧑🏻‍💼' },
-    { label: 'Confused? Shall I recommend tile? 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' }
+    { label: 'Confused? Shall I recommend tiles? 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' }
   ]
 };
 
