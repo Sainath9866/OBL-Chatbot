@@ -101,8 +101,8 @@ const AnimatedTileViewer = ({ tiles = [], setCurrentAction }) => {
 
   if (!displayedTiles.length) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-3 max-w-md">
-        <div className="text-sm font-medium mb-2">
+      <div className="bg-white rounded-lg shadow-lg p-2 max-w-md">
+        <div className="text-xs font-medium">
           No items found
         </div>
       </div>
@@ -112,16 +112,16 @@ const AnimatedTileViewer = ({ tiles = [], setCurrentAction }) => {
   return (
     <div 
       ref={componentRef} 
-      className="bg-white rounded-lg shadow-lg p-3 max-w-md"
+      className="bg-white rounded-lg shadow-lg p-2 max-w-md"
       onWheel={handleWheel}
     >
-      <div className="text-sm font-medium mb-2">
+      <div className="text-xs font-medium">
         Showing {displayedTiles.length} of {tiles.length} items 🎯
       </div>
 
       <div className="relative">
         {/* Image Viewer */}
-        <div className="relative aspect-[4/3] mb-2">
+        <div className="relative aspect-[16/9] my-1">
           {/* Image Container */}
           <div className="absolute inset-0 overflow-hidden rounded-lg">
             <div 
@@ -135,7 +135,7 @@ const AnimatedTileViewer = ({ tiles = [], setCurrentAction }) => {
                   <div 
                     key={index}
                     className="w-full h-full flex-shrink-0"
-                    style={{ aspectRatio: '4/3' }}
+                    style={{ aspectRatio: '16/9' }}
                   >
                     <img
                       src={tile.image_url}
@@ -158,10 +158,10 @@ const AnimatedTileViewer = ({ tiles = [], setCurrentAction }) => {
                   setIsPlaying(false);
                 }
               }}
-              className="bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-1.5 transition-opacity pointer-events-auto"
+              className="bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-1 transition-opacity pointer-events-auto"
               disabled={currentIndex === 0}
             >
-              <ChevronLeft className="w-4 h-4 text-white" />
+              <ChevronLeft className="w-3 h-3 text-white" />
             </button>
             <button
               onClick={() => {
@@ -170,34 +170,34 @@ const AnimatedTileViewer = ({ tiles = [], setCurrentAction }) => {
                   setIsPlaying(false);
                 }
               }}
-              className="bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-1.5 transition-opacity pointer-events-auto"
+              className="bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-1 transition-opacity pointer-events-auto"
               disabled={currentIndex === displayedTiles.length - 1}
             >
-              <ChevronRight className="w-4 h-4 text-white" />
+              <ChevronRight className="w-3 h-3 text-white" />
             </button>
           </div>
 
           {/* Counter and Play/Pause */}
-          <div className="absolute bottom-2 left-0 right-0 flex justify-between items-center px-2">
-            <div className="text-xs text-white bg-black bg-opacity-50 px-2 py-0.5 rounded">
+          <div className="absolute bottom-1 left-0 right-0 flex justify-between items-center px-2">
+            <div className="text-xs text-white bg-black bg-opacity-50 px-1.5 py-0.5 rounded">
               {currentIndex + 1}/{displayedTiles.length}
             </div>
             <button 
               onClick={() => setIsPlaying(!isPlaying)}
-              className="text-white bg-black bg-opacity-50 p-1.5 rounded-full hover:bg-opacity-70"
+              className="text-white bg-black bg-opacity-50 p-1 rounded-full hover:bg-opacity-70"
             >
-              {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+              {isPlaying ? <Pause size={12} /> : <Play size={12} />}
             </button>
           </div>
         </div>
 
-        {/* View More Button - Moved outside the image container */}
+        {/* View More Button */}
         {showViewMore && currentIndex === displayedTiles.length - 1 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="bg-black bg-opacity-50 absolute inset-0 rounded-lg" />
             <button
               onClick={handleLoadMore}
-              className="relative z-10 bg-white text-green-600 px-4 py-2 rounded-lg font-medium hover:bg-green-50"
+              className="relative z-10 bg-white text-green-600 px-3 py-1 rounded-lg text-xs font-medium hover:bg-green-50"
             >
               View More ({tiles.length - displayedTiles.length} remaining)
             </button>
@@ -206,37 +206,37 @@ const AnimatedTileViewer = ({ tiles = [], setCurrentAction }) => {
 
         {/* Info Section */}
         {currentTile && (
-          <div className="space-y-1 text-sm">
+          <div className="space-y-0.5 text-xs">
             <div className="flex justify-between items-baseline">
               <h2 className="font-bold">{currentTile.name}</h2>
               <p className="font-bold">₹{currentTile.price}/sq.ft</p>
             </div>
             
-            <div className="justify-between text-sm">
-              <span className="font-bold">Size : </span>
+            <div className="justify-between">
+              <span className="font-bold">Size: </span>
               <span className="font-semibold">{currentTile.size}</span>
               
-              <span className="font-bold">    Finish : </span>
+              <span className="font-bold ml-2">Finish: </span>
               <span className="font-semibold">{currentTile.finish}</span>
             </div>
 
-            <div className="text-sm">
+            <div>
               <span className="font-bold">Material: </span>
               <span className="font-semibold">{currentTile.material}</span>
               <div className="font-bold">Applicable for: </div>
               <div className="font-semibold">{currentTile.applications}</div>
             </div>
 
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-1">
               <button
-                className="flex-1 bg-white border border-green-600 text-green-600 py-1 px-2 rounded text-xs hover:bg-green-50"
+                className="flex-1 bg-white border border-green-600 text-green-600 py-0.5 px-2 rounded text-xs hover:bg-green-50"
                 onClick={() => window.open(currentTile.product_url, '_blank')}
               >
                 See Details / Buy Now
               </button>
               <button
                 onClick={() => setCurrentAction('SHOW_TILES')}
-                className="flex-1 bg-white border border-green-600 text-green-600 py-1 px-2 rounded text-xs hover:bg-green-50"
+                className="flex-1 bg-white border border-green-600 text-green-600 py-0.5 px-2 rounded text-xs hover:bg-green-50"
               >
                 Change Category
               </button>

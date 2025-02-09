@@ -8,3 +8,4 @@ scikit-learn==1.4.0
 numpy==1.26.3
 python-multipart==0.0.6
 typing-extensions==4.9.0
+apscheduler==3.11.0

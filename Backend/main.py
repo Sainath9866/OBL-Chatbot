@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
 import google.generativeai as genai
-from typing import List, Optional
+from typing import Dict,List, Optional
 import os
 from pydantic import BaseModel
 from pathlib import Path
@@ -12,6 +12,19 @@ import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import requests
+from requests.auth import HTTPBasicAuth
+import logging
+from fastapi.responses import JSONResponse
+from fastapi import BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import pandas as pd
+from requests.auth import HTTPBasicAuth
+import json
+from datetime import datetime, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
+
 
 load_dotenv()
 
@@ -530,6 +543,361 @@ async def name_endpoint(query: TileQuery):
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# API Configuration
+API_URL = "http://103.68.24.11:1048/BC220/ODataV4/Company('Orient%20Bell%20Limited')/SalesData?$filter=Posting_Date gt 2025-01-15"
+USERNAME = "orientbell"
+PASSWORD = "Orient@2023"
+
+def fetch_data():
+    """Fetch data from the main API with configuration matching Postman"""
+    try:
+        logger.info(f"Attempting to connect to API: {API_URL}")
+        
+        # Headers matching Postman's default headers
+        headers = {
+            'User-Agent': 'PostmanRuntime/7.32.3',
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive'
+        }
+        
+        # Create a session to handle connection pooling
+        session = requests.Session()
+        
+        # Configure session with longer timeouts
+        session.timeout = (30, 300)  # (connect timeout, read timeout)
+        
+        response = session.get(
+            API_URL,
+            auth=HTTPBasicAuth(USERNAME, PASSWORD),
+            headers=headers,
+            verify=False,  # Disable SSL verification
+            timeout=(30, 300)  # Explicit timeouts (connect timeout, read timeout)
+        )
+        
+        # Log response details
+        logger.info(f"Response Status Code: {response.status_code}")
+        logger.info(f"Response Headers: {dict(response.headers)}")
+        
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                record_count = len(data.get('value', []))
+                logger.info(f"Successfully fetched {record_count} records")
+                return data.get('value', [])
+            except ValueError as e:
+                logger.error(f"JSON Parsing Error: {str(e)}")
+                logger.error(f"Response Content: {response.text[:500]}...")  # Log first 500 chars
+                return []
+        else:
+            logger.error(f"API returned status code: {response.status_code}")
+            logger.error(f"Response Content: {response.text[:500]}...")  # Log first 500 chars
+            return []
+            
+    except requests.exceptions.Timeout as e:
+        logger.error(f"Timeout Error: {str(e)}")
+        return []
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"Connection Error: {str(e)}")
+        return []
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request Exception: {str(e)}")
+        return []
+    except Exception as e:
+        logger.error(f"Unexpected Error: {str(e)}")
+        return []
+
+@app.get("/states", response_model=dict)
+async def get_states():
+    """Get list of unique states with enhanced error handling"""
+    try:
+        logger.info("Starting states request processing")
+        data = fetch_data()
+        
+        logger.info(f"Processing {len(data)} records from API")
+        
+        # Convert API data to DataFrame and extract unique states
+        df = pd.DataFrame(data)
+        
+        # Log the DataFrame columns to verify 'State_Desc' exists
+        logger.info(f"DataFrame columns: {df.columns.tolist()}")
+        
+        if 'State_Desc' not in df.columns:
+            logger.error("'State_Desc' column not found in API response")
+            # Log a sample of the data to see the actual structure
+            logger.info(f"Sample data: {df.head().to_dict()}")
+            raise ValueError("'State_Desc' column not found in API response")
+        
+        states = df['State_Desc'].unique().tolist()
+        
+        # Sort states alphabetically and remove any None/null values
+        states = sorted([state for state in states if state])
+        
+        logger.info(f"Successfully processed states. Found {len(states)} unique states")
+        return JSONResponse(content={"states": states})
+    
+    except ValueError as e:
+        logger.error(f"ValueError in get_states: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error in get_states: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error processing states: {str(e)}"
+        )
+
+
+# Create Pydantic model for request validation
+class StateRequest(BaseModel):
+    state: str
+
+@app.post("/cities", response_model=dict)
+async def get_cities(request: StateRequest):
+    """Get list of unique cities for a given state with enhanced error handling"""
+    try:
+        logger.info(f"Starting cities request processing for state: {request.state}")
+        data = fetch_data()
+        
+        logger.info(f"Processing {len(data)} records from API")
+        
+        # Convert API data to DataFrame
+        df = pd.DataFrame(data)
+        
+        # Log the DataFrame columns to verify required columns exist
+        logger.info(f"DataFrame columns: {df.columns.tolist()}")
+        
+        # Verify required columns exist
+        required_columns = ['State_Desc', 'Sell_to_City']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            error_msg = f"Missing required columns: {missing_columns}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        # Filter data for the requested state
+        state_data = df[df['State_Desc'] == request.state]
+        
+        if len(state_data) == 0:
+            logger.warning(f"No data found for state: {request.state}")
+            return JSONResponse(content={
+                "cities": [],
+                "message": f"No cities found for state: {request.state}"
+            })
+        
+        # Extract unique cities
+        cities = state_data['Sell_to_City'].unique().tolist()
+        
+        # Sort cities alphabetically and remove any None/null values
+        cities = sorted([city for city in cities if city])
+        
+        logger.info(f"Successfully processed cities for {request.state}. Found {len(cities)} unique cities")
+        return JSONResponse(content={
+            "cities": cities,
+            "count": len(cities)
+        })
+    
+    except ValueError as e:
+        logger.error(f"ValueError in get_cities: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error in get_cities: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing cities: {str(e)}"
+        )
+class LocationRequest(BaseModel):
+    state: str
+    city: str
+
+def clean_description(desc: str, desc2: str) -> str:
+    """
+    Clean and combine tile descriptions according to specified rules
+    """
+    try:
+        # Remove size pattern from description
+        desc = re.sub(r'\d+[Xx]\d+\s*', '', desc.strip())
+        
+        # Remove pieces pattern and Prem/Std suffix from description_2
+        desc2 = re.sub(r'\d+\s*(?:Pc|Pcs)\s*(?:Prem|Std)\s*$', '', desc2.strip())
+        
+        # Combine and clean descriptions
+        combined = ' '.join((desc + ' ' + desc2).split())
+        return combined
+        
+    except Exception as e:
+        logger.error(f"Error in clean_description: {str(e)}")
+        return ""
+
+@app.post("/fetch-names", response_model=dict)
+async def fetch_names(request: LocationRequest):
+    """Fetch tile names and their total quantities for a given state and city"""
+    try:
+        logger.info(f"Starting fetch-names processing for state: {request.state}, city: {request.city}")
+        data = fetch_data()
+        
+        logger.info(f"Processing {len(data)} records from API")
+        
+        # Convert API data to DataFrame
+        df = pd.DataFrame(data)
+        
+        # Verify required columns exist
+        required_columns = ['State_Desc', 'Sell_to_City', 'Description', 'Description_2', 'Qty_Crt']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            error_msg = f"Missing required columns: {missing_columns}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        # Filter data for the requested state and city
+        filtered_data = df[
+            (df['State_Desc'] == request.state) & 
+            (df['Sell_to_City'] == request.city)
+        ]
+        
+        if len(filtered_data) == 0:
+            logger.warning(f"No data found for state: {request.state} and city: {request.city}")
+            return JSONResponse(content={
+                "tiles": [],
+                "message": f"No tiles found for state: {request.state} and city: {request.city}"
+            })
+        
+        # Dictionary to store tile names and their quantities
+        tile_quantities: Dict[str, float] = {}
+        
+        # Process each row and aggregate quantities
+        for _, row in filtered_data.iterrows():
+            if pd.notna(row['Description']) and pd.notna(row['Description_2']):
+                clean_name = clean_description(row['Description'], row['Description_2'])
+                if clean_name:
+                    quantity = float(row['Qty_Crt']) if pd.notna(row['Qty_Crt']) else 0
+                    tile_quantities[clean_name] = tile_quantities.get(clean_name, 0) + quantity
+        
+        # Convert to list of dictionaries and sort by quantity in descending order
+        tiles_list = [
+            {
+                "name": name,
+                "quantity": round(quantity, 2)  # Round to 2 decimal places
+            }
+            for name, quantity in tile_quantities.items()
+        ]
+        
+        # Sort by quantity in descending order
+        tiles_list.sort(key=lambda x: x['quantity'], reverse=True)
+        
+        logger.info(f"Successfully processed {len(tiles_list)} unique tiles with quantities")
+        return JSONResponse(content={
+            "tiles": tiles_list,
+            "total_unique_tiles": len(tiles_list),
+            "total_quantity": round(sum(tile['quantity'] for tile in tiles_list), 2)
+        })
+    
+    except ValueError as e:
+        logger.error(f"ValueError in fetch_names: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error in fetch_names: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing tile names: {str(e)}"
+        )
+    
+# Pydantic model for request
+class TileNamesRequest(BaseModel):
+    tile_names: List[str]
+
+
+def calculate_word_overlap(name1: str, name2: str) -> int:
+    """Calculate number of common words between two names"""
+    # Convert to lowercase and split into words
+    words1 = set(name1.lower().split())
+    words2 = set(name2.lower().split())
+    # Return number of common words
+    return len(words1.intersection(words2))
+
+@app.post("/fetch_sales_data")
+async def fetch_sales_data(request: TileNamesRequest):
+    """Fetch complete tile data for given tile names with flexible matching"""
+    try:
+        if df is None or df.empty:
+            logger.error("Tile database is not loaded")
+            raise HTTPException(status_code=500, detail="Tile database is not loaded")
+        
+        logger.info(f"Searching for {len(request.tile_names)} tile names")
+        
+        # Store matching rows
+        matching_rows = []
+        
+        # For each requested tile name
+        for requested_name in request.tile_names:
+            # Check each row in the database
+            for _, row in df.iterrows():
+                db_name = str(row['name'])
+                # Calculate word overlap
+                common_words = calculate_word_overlap(requested_name, db_name)
+                # If more than 3 words match, consider it a match
+                if common_words > 3:
+                    matching_rows.append(row)
+        
+        # Convert to DataFrame if we found matches
+        filtered_df = pd.DataFrame(matching_rows)
+        
+        if filtered_df.empty:
+            logger.warning("No matching tiles found")
+            return JSONResponse(content={
+                "tiles": [],
+                "message": "No matching tiles found"
+            })
+        
+        # Convert matching rows to response format
+        tiles = []
+        for _, row in filtered_df.iterrows():
+            try:
+                tile = {
+                    "id": str(row['id']),
+                    "name": str(row['name']),
+                    "description": str(row['description']),
+                    "material": str(row['material']),
+                    "finish": str(row['finish']),
+                    "size": str(row['size']),
+                    "price": float(row['price']) if pd.notna(row['price']) else 0.0,
+                    "price_unit": str(row['price_unit']),
+                    "design_types": str(row['design_types']),
+                    "applications": str(row['applications']),
+                    "quantity_per_box": float(row['quantity_per_box']) if pd.notna(row['quantity_per_box']) else None,
+                    "area_per_box": float(row['area_per_box']) if pd.notna(row['area_per_box']) else None,
+                    "area_unit": str(row['area_unit']),
+                    "faces": int(row['faces']) if pd.notna(row['faces']) else None,
+                    "origin": str(row['origin']),
+                    "laying_patterns": str(row['laying_patterns']),
+                    "product_url": str(row['product_url']),
+                    "image_url": str(row['image_url']),
+                    "image_path": str(row['image_path'])
+                }
+                tiles.append(tile)
+                logger.info(f"Successfully processed tile: {row['name']}")
+            
+            except Exception as e:
+                logger.error(f"Error processing tile {row['name']}: {str(e)}")
+                continue
+        
+        response = {
+            "tiles": tiles
+        }
+        
+        logger.info(f"Successfully returning {len(tiles)} tiles")
+        return JSONResponse(content=response)
+        
+    except Exception as e:
+        logger.error(f"Error in fetch_sales_data: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing request: {str(e)}"
+        )
 
 @app.post("/general")
 async def general_endpoint(query: dict):

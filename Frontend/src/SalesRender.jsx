@@ -3,24 +3,27 @@ import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 25;
 
-const SuggestedOptionsViewer = ({ suggested_options, setCurrentAction }) => {
+const SalesRender = ({ salesData }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
-  const [displayedOptions, setDisplayedOptions] = useState([]);
+  const [displayedTiles, setDisplayedTiles] = useState([]);
   const [showViewMore, setShowViewMore] = useState(false);
   const componentRef = useRef(null);
   const wheelTimer = useRef(null);
 
-  // Initialize displayed options
-  useEffect(() => {
-    if (suggested_options.length > 0) {
-      const initialOptions = suggested_options.slice(0, ITEMS_PER_PAGE);
-      setDisplayedOptions(initialOptions);
-      setShowViewMore(suggested_options.length > ITEMS_PER_PAGE);
-    }
-  }, [suggested_options]);
+  const { tiles, quantities } = salesData;
 
+  // Initialize displayed tiles
+  useEffect(() => {
+    if (tiles.length > 0) {
+      const initialTiles = tiles.slice(0, ITEMS_PER_PAGE);
+      setDisplayedTiles(initialTiles);
+      setShowViewMore(tiles.length > ITEMS_PER_PAGE);
+    }
+  }, [tiles]);
+
+  // Intersection Observer effect
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => setIsVisible(entry.isIntersecting),
@@ -38,36 +41,14 @@ const SuggestedOptionsViewer = ({ suggested_options, setCurrentAction }) => {
     };
   }, []);
 
-  const handleWheel = (e) => {
-    e.preventDefault();
-
-    if (wheelTimer.current) {
-      clearTimeout(wheelTimer.current);
-    }
-
-    wheelTimer.current = setTimeout(() => {
-      const sensitivity = 50;
-      
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        if (e.deltaX > sensitivity && currentIndex < displayedOptions.length - 1) {
-          setCurrentIndex(prev => prev + 1);
-          setIsPlaying(false);
-        } else if (e.deltaX < -sensitivity && currentIndex > 0) {
-          setCurrentIndex(prev => prev - 1);
-          setIsPlaying(false);
-        }
-      }
-    }, 50);
-  };
-
   // Auto-play effect
   useEffect(() => {
     let intervalId;
     
-    if (isPlaying && displayedOptions.length > 1 && isVisible) {
+    if (isPlaying && displayedTiles.length > 1 && isVisible) {
       intervalId = setInterval(() => {
         setCurrentIndex((prev) => {
-          if (prev === displayedOptions.length - 1) {
+          if (prev === displayedTiles.length - 1) {
             if (showViewMore) {
               return prev;
             }
@@ -79,27 +60,40 @@ const SuggestedOptionsViewer = ({ suggested_options, setCurrentAction }) => {
     }
 
     return () => clearInterval(intervalId);
-  }, [isPlaying, displayedOptions.length, isVisible, showViewMore]);
-
-  // Clean up wheel timer
-  useEffect(() => {
-    return () => {
-      if (wheelTimer.current) {
-        clearTimeout(wheelTimer.current);
-      }
-    };
-  }, []);
+  }, [isPlaying, displayedTiles.length, isVisible, showViewMore]);
 
   const handleLoadMore = () => {
-    const currentLength = displayedOptions.length;
-    const nextBatch = suggested_options.slice(currentLength, currentLength + ITEMS_PER_PAGE);
-    setDisplayedOptions([...displayedOptions, ...nextBatch]);
-    setShowViewMore(currentLength + ITEMS_PER_PAGE < suggested_options.length);
+    const currentLength = displayedTiles.length;
+    const nextBatch = tiles.slice(currentLength, currentLength + ITEMS_PER_PAGE);
+    setDisplayedTiles([...displayedTiles, ...nextBatch]);
+    setShowViewMore(currentLength + ITEMS_PER_PAGE < tiles.length);
   };
 
-  const currentOption = displayedOptions[currentIndex];
+  const handleWheel = (e) => {
+    e.preventDefault();
 
-  if (!displayedOptions.length) {
+    if (wheelTimer.current) {
+      clearTimeout(wheelTimer.current);
+    }
+
+    wheelTimer.current = setTimeout(() => {
+      const sensitivity = 50;
+      
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        if (e.deltaX > sensitivity && currentIndex < displayedTiles.length - 1) {
+          setCurrentIndex(prev => prev + 1);
+          setIsPlaying(false);
+        } else if (e.deltaX < -sensitivity && currentIndex > 0) {
+          setCurrentIndex(prev => prev - 1);
+          setIsPlaying(false);
+        }
+      }
+    }, 50);
+  };
+
+  const currentTile = displayedTiles[currentIndex];
+
+  if (!displayedTiles.length) {
     return (
       <div className="bg-white rounded-lg shadow-lg p-2 max-w-md">
         <div className="text-xs font-medium">
@@ -116,7 +110,8 @@ const SuggestedOptionsViewer = ({ suggested_options, setCurrentAction }) => {
       onWheel={handleWheel}
     >
       <div className="text-xs font-medium">
-        Showing {displayedOptions.length} of {suggested_options.length} items 🎯
+        Here are the trending tiles nearby your location 🚀
+        Showing {displayedTiles.length} of {tiles.length} items 🎯
       </div>
 
       <div className="relative">
@@ -125,19 +120,19 @@ const SuggestedOptionsViewer = ({ suggested_options, setCurrentAction }) => {
             <div 
               className="absolute w-full h-full transition-transform duration-300 ease-out"
               style={{
-                transform: `translateX(-${currentIndex * 100}%)`,
+                transform: `translateX(-${currentIndex * 100}%)`
               }}
             >
               <div className="flex">
-                {displayedOptions.map((option, index) => (
+                {displayedTiles.map((tile, index) => (
                   <div 
                     key={index}
                     className="w-full h-full flex-shrink-0"
                     style={{ aspectRatio: '16/9' }}
                   >
                     <img
-                      src={option.image_url}
-                      alt={option.label}
+                      src={tile.image_url}
+                      alt={tile.name}
                       className="w-full h-full object-cover"
                       draggable="false"
                     />
@@ -146,8 +141,7 @@ const SuggestedOptionsViewer = ({ suggested_options, setCurrentAction }) => {
               </div>
             </div>
           </div>
-          
-          {/* Navigation Buttons */}
+
           <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
             <button
               onClick={() => {
@@ -163,22 +157,21 @@ const SuggestedOptionsViewer = ({ suggested_options, setCurrentAction }) => {
             </button>
             <button
               onClick={() => {
-                if (currentIndex < displayedOptions.length - 1) {
+                if (currentIndex < displayedTiles.length - 1) {
                   setCurrentIndex(prev => prev + 1);
                   setIsPlaying(false);
                 }
               }}
               className="bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full p-1 transition-opacity pointer-events-auto"
-              disabled={currentIndex === displayedOptions.length - 1}
+              disabled={currentIndex === displayedTiles.length - 1}
             >
               <ChevronRight className="w-3 h-3 text-white" />
             </button>
           </div>
 
-          {/* Counter and Play/Pause */}
           <div className="absolute bottom-1 left-0 right-0 flex justify-between items-center px-2">
             <div className="text-xs text-white bg-black bg-opacity-50 px-1.5 py-0.5 rounded">
-              {currentIndex + 1}/{displayedOptions.length}
+              {currentIndex + 1}/{displayedTiles.length}
             </div>
             <button 
               onClick={() => setIsPlaying(!isPlaying)}
@@ -189,54 +182,55 @@ const SuggestedOptionsViewer = ({ suggested_options, setCurrentAction }) => {
           </div>
         </div>
 
-        {/* View More Button */}
-        {showViewMore && currentIndex === displayedOptions.length - 1 && (
+        {showViewMore && currentIndex === displayedTiles.length - 1 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="bg-black bg-opacity-50 absolute inset-0 rounded-lg" />
             <button
               onClick={handleLoadMore}
               className="relative z-10 bg-white text-green-600 px-3 py-1 rounded-lg text-xs font-medium hover:bg-green-50"
             >
-              View More ({suggested_options.length - displayedOptions.length} remaining)
+              View More ({tiles.length - displayedTiles.length} remaining)
             </button>
           </div>
         )}
 
-        {/* Info Section */}
-        {currentOption && (
+        {currentTile && (
           <div className="space-y-0.5 text-xs">
             <div className="flex justify-between items-baseline">
-              <h2 className="font-bold">{currentOption.name}</h2>
-              <p className="font-bold">₹{currentOption.price}/sq.ft</p>
+              <h2 className="font-bold">{currentTile.name}</h2>
+              <p className="font-bold">₹{currentTile.price}/sq.ft</p>
             </div>
             
             <div className="justify-between">
               <span className="font-bold">Size: </span>
-              <span className="font-semibold">{currentOption.size}</span>
+              <span className="font-semibold">{currentTile.size}</span>
               
               <span className="font-bold ml-2">Finish: </span>
-              <span className="font-semibold">{currentOption.finish}</span>
+              <span className="font-semibold">{currentTile.finish}</span>
             </div>
 
             <div>
               <span className="font-bold">Material: </span>
-              <span className="font-semibold">{currentOption.material}</span>
+              <span className="font-semibold">{currentTile.material}</span>
               <div className="font-bold">Applicable for: </div>
-              <div className="font-semibold">{currentOption.applications}</div>
+              <div className="font-semibold">{currentTile.applications}</div>
+            </div>
+
+            <div className="mt-1">
+              <div className="font-bold text-green-600">
+                Carton Boxes Sold: {quantities[currentIndex]} boxes
+              </div>
+              <div className="font-semibold text-xs text-gray-600">
+                ({(quantities[currentIndex] * currentTile.quantity_per_box).toFixed(2)} pieces)
+              </div>
             </div>
 
             <div className="flex gap-2 mt-1">
               <button
                 className="flex-1 bg-white border border-green-600 text-green-600 py-0.5 px-2 rounded text-xs hover:bg-green-50"
-                onClick={() => window.open(currentOption.product_url, '_blank')}
+                onClick={() => window.open(currentTile.product_url, '_blank')}
               >
-                See Details / Buy Now
-              </button>
-              <button
-                onClick={() => setCurrentAction('SHOW_TILES')}
-                className="flex-1 bg-white border border-green-600 text-green-600 py-0.5 px-2 rounded text-xs hover:bg-green-50"
-              >
-                Change Category
+                See Details/Buy Now
               </button>
             </div>
           </div>
@@ -246,4 +240,4 @@ const SuggestedOptionsViewer = ({ suggested_options, setCurrentAction }) => {
   );
 };
 
-export default SuggestedOptionsViewer;
+export default SalesRender;
