@@ -203,7 +203,7 @@ export default function ChatInterface({ setShowChat }) {
     //     setSelectedCategory(tileCategory);
 
     //     // Make request to size endpoint
-    //     const response = await fetch('http://127.0.0.1:8000/size', {
+    //     const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
     //       method: 'POST',
     //       headers: {
     //         'Content-Type': 'application/json',
@@ -615,7 +615,7 @@ export default function ChatInterface({ setShowChat }) {
         const fetchStates = async (retries = 3) => {
           for (let i = 0; i < retries; i++) {
             try {
-              const response = await fetch('http://127.0.0.1:8000/states');
+              const response = await fetch('https://obl-chatbot-backend.onrender.com/states');
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
@@ -670,7 +670,7 @@ export default function ChatInterface({ setShowChat }) {
 
       try {
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/cities', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/cities', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -733,7 +733,7 @@ export default function ChatInterface({ setShowChat }) {
       try {
         console.log(selectedState, selectedCity);
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/fetch-names', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/fetch-names', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
