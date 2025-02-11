@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send ,Menu} from 'lucide-react';
+import { Send, Menu } from 'lucide-react';
 import TileCarousel from './TileCarousel';
 import ContactForm from './contact';
 import { useAction } from './ActionContent';
@@ -47,17 +47,17 @@ const MenuPopup = ({ isOpen, onClose, handleOptionClick }) => {
   ];
 
   return (
-    <div className="absolute bottom-16 right-0 bg-white rounded-lg shadow-xl p-4 w-[350px] border border-gray-200">
+    <div className="max-w-[300px] md:max-w-[350px] lg:max-w-[400px] absolute bottom-16 right-0 bg-white rounded-lg shadow-xl p-4 w-[350px] border border-gray-200">
       {/* Close button */}
-      <button 
+      <button
         onClick={onClose}
         className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
       >
         <X size={16} />
       </button>
-      
+
       {/* Grid layout for buttons */}
-      <div className="grid grid-cols-2 gap-2 mt-4">
+      <div className="grid grid-cols-2 gap-2 mt-4 ">
         {tileOptions.map((row, rowIndex) => (
           row.map((option, colIndex) => (
             <button
@@ -747,6 +747,8 @@ export default function ChatInterface({ setShowChat }) {
         }
 
         const data = await response.json();
+        console.log("hi")
+        console.log(data);
 
         setMessages(prev => [
           ...prev,
@@ -817,11 +819,11 @@ export default function ChatInterface({ setShowChat }) {
   };
   const { setCurrentAction } = useAction();
 
-  
+
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      <div className="w-full max-w-[300px] md:max-w-[350px] lg:max-w-[400px] h-[550px] bg-white rounded-lg shadow-xl flex flex-col">
+      <div className="w-full max-w-[300px] md:max-w-[350px] lg:max-w-[400px] h-[600px] bg-white rounded-lg shadow-xl flex flex-col">
         {/* Header */}
         <div className="bg-black p-3 md:p-4 rounded-t-lg flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 md:gap-2">
@@ -858,8 +860,8 @@ export default function ChatInterface({ setShowChat }) {
             <div key={index}>
               <div className={`${message.type === 'user' ? 'flex justify-end' : ''}`}>
                 <div className={`${message.type === 'user'
-                    ? 'bg-green-600 text-white px-4 py-2 rounded-lg inline-block'
-                    : 'bg-gray-100 p-4 rounded-lg w-full'
+                  ? 'bg-green-600 text-white px-4 py-2 rounded-lg inline-block'
+                  : 'bg-gray-100 p-4 rounded-lg w-full'
                   }`}>
                   <div className="whitespace-pre-wrap text-sm">{message.content}</div>
                   <div className={`text-xs ${message.type === 'user' ? 'text-green-100' : 'text-gray-500 mt-1'
@@ -896,49 +898,53 @@ export default function ChatInterface({ setShowChat }) {
         </div>
 
         {/* Input Area */}
-         <div className="p-3 md:p-4 border-t shrink-0">
-          <div className="flex gap-2 relative">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask your question..."
-              className="flex-1 py-2.5 px-4 bg-gray-100 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-600 text-sm md:text-base"
-              disabled={isLoading}
-            />
-            <button
-              onClick={handleSend}
-              disabled={isLoading}
-              className="p-2 text-black hover:text-gray-600 transition-colors disabled:text-gray-400"
-            >
-              <Send size={20} />
-            </button>
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 text-black hover:text-gray-600 transition-colors"
-            >
-              <Menu size={20} />
-            </button>
-            <button
-              onClick={handleHomeClick}
-              className="p-2 text-black hover:text-gray-600 transition-colors"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+        <div className="p-3 md:p-4 border-t shrink-0">
+          <div className="flex gap-2 items-center">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Ask your question..."
+                className="w-full py-2.5 px-4 bg-gray-100 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-600 text-sm md:text-base"
+                disabled={isLoading}
+              />
+            </div>
+            <div className="flex shrink-0 gap-1">
+              <button
+                onClick={handleSend}
+                disabled={isLoading}
+                className="p-2 text-black hover:text-gray-600 transition-colors disabled:text-gray-400"
               >
-                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-              </svg>
-            </button>
-            <MenuPopup 
-              isOpen={isMenuOpen}
-              onClose={() => setIsMenuOpen(false)}
-              handleOptionClick={handleOptionClick}
-            />
+                <Send size={20} />
+              </button>
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 text-black hover:text-gray-600 transition-colors"
+              >
+                <Menu size={20} />
+              </button>
+              <button
+                onClick={handleHomeClick}
+                className="p-2 text-black hover:text-gray-600 transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                </svg>
+              </button>
+            </div>
           </div>
+          <MenuPopup
+            isOpen={isMenuOpen}
+            onClose={() => setIsMenuOpen(false)}
+            handleOptionClick={handleOptionClick}
+          />
         </div>
       </div>
     </div>
