@@ -6,10 +6,10 @@ class Settings:
         # Check if running on Render
         is_render = os.environ.get('RENDER') == 'true'
         
-        # Use different Redis URLs based on environment
         if is_render:
-            # When deployed on Render
-            self.REDIS_URL = 'redis://red-cuk7ri2j1k6c73d4v930.internal:6379'  # Your Render internal Redis URL
+            # When deployed on Render - use external Redis URL
+            # Format: redis://default:password@red-xxxxx.render.com:6379
+            self.REDIS_URL = 'rediss://red-cuk7ri2j1k6c73d4v930:HiA8X7KyTpqRbfRCCuVLNJ1i3x4mWQLj@oregon-redis.render.com:6379'  # Replace with your actual external Redis URL
         else:
             # When running locally
             self.REDIS_URL = 'redis://localhost:6379'
