@@ -203,7 +203,7 @@ export default function ChatInterface({ setShowChat }) {
     //     setSelectedCategory(tileCategory);
 
     //     // Make request to size endpoint
-    //     const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
+    //     const response = await fetch('http://127.0.0.1:8000/size', {
     //       method: 'POST',
     //       headers: {
     //         'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ export default function ChatInterface({ setShowChat }) {
     // Default chat behavior for non-tile requests
     try {
       setIsLoading(true);
-      const response = await fetch('https://obl-chatbot-backend.onrender.com/chat', {
+      const response = await fetch('http://127.0.0.1:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -553,7 +553,7 @@ export default function ChatInterface({ setShowChat }) {
         setIsLoading(true);
 
         // Updated request to match backend expectations
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
+        const response = await fetch('http://127.0.0.1:8000/size', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -615,7 +615,7 @@ export default function ChatInterface({ setShowChat }) {
         const fetchStates = async (retries = 3) => {
           for (let i = 0; i < retries; i++) {
             try {
-              const response = await fetch('https://obl-chatbot-backend.onrender.com/states');
+              const response = await fetch('http://127.0.0.1:8000/states');
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
@@ -670,7 +670,7 @@ export default function ChatInterface({ setShowChat }) {
 
       try {
         setIsLoading(true);
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/cities', {
+        const response = await fetch('http://127.0.0.1:8000/cities', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -733,7 +733,7 @@ export default function ChatInterface({ setShowChat }) {
       try {
         console.log(selectedState, selectedCity);
         setIsLoading(true);
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/fetch-names', {
+        const response = await fetch('http://127.0.0.1:8000/fetch-names', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -920,12 +920,6 @@ export default function ChatInterface({ setShowChat }) {
                 <Send size={20} />
               </button>
               <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 text-black hover:text-gray-600 transition-colors"
-              >
-                <Menu size={20} />
-              </button>
-              <button
                 onClick={handleHomeClick}
                 className="p-2 text-black hover:text-gray-600 transition-colors"
               >
@@ -937,6 +931,12 @@ export default function ChatInterface({ setShowChat }) {
                 >
                   <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
                 </svg>
+              </button>
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 text-black hover:text-gray-600 transition-colors"
+              >
+                <Menu size={20} />
               </button>
             </div>
           </div>
