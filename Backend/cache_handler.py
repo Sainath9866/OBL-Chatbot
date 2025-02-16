@@ -33,7 +33,7 @@ class RedisCache:
         self.session.mount("https://", adapter)
         
     def get_api_url(self):
-        past_date = (datetime.now() - timedelta(days=25)).strftime('%Y-%m-%d')
+        past_date = (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d')
         return f"{settings.API_BASE_URL}?$filter=Posting_Date gt {past_date}"
     
     def fetch_from_api(self):
