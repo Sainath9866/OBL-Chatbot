@@ -203,7 +203,7 @@ export default function ChatInterface({ setShowChat }) {
     //     setSelectedCategory(tileCategory);
 
     //     // Make request to size endpoint
-    //     const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
+    //     const response = await fetch('http://127.0.0.1:8000/size', {
     //       method: 'POST',
     //       headers: {
     //         'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ export default function ChatInterface({ setShowChat }) {
     // Default chat behavior for non-tile requests
     try {
       setIsLoading(true);
-      const response = await fetch('https://obl-chatbot-backend.onrender.com/chat', {
+      const response = await fetch('http://127.0.0.1:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -528,74 +528,6 @@ export default function ChatInterface({ setShowChat }) {
 
       ]);
       setTimeout(scrollToBottom, 1000);
-    } else if (action.toUpperCase().includes('TILES')) {
-      // Convert the action to match backend expectations
-
-      // Convert the action to match backend expectations
-      const category = action
-        .toLowerCase()
-        .replace(/_/g, '-')
-        .replace(/\s+/g, '-');
-
-      // Store the selected category
-      setSelectedCategory(category);
-
-      console.log(selectedCategory)
-
-
-      setMessages(prev => [...prev, {
-        type: 'user',
-        content: category,
-        timestamp
-      }]);
-
-      try {
-        setIsLoading(true);
-
-        // Updated request to match backend expectations
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ category }) // Match the backend model parameter name
-        });
-
-        if (!response.ok) {
-          // Log the error response for debugging
-          const errorData = await response.text();
-          console.error('Server response:', errorData);
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Format the sizes as buttons
-        setMessages(prev => [
-          ...prev,
-          {
-            type: 'bot',
-            content: 'Please select a size:',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            options: data.sizes.map(size => ({
-              label: size,
-              action: `SIZE_${size.replace(/[^0-9x]/g, '')}`
-            }))
-          }
-        ]);
-      } catch (error) {
-        console.error('Error details:', error);
-        setMessages(prev => [
-          ...prev,
-          {
-            type: 'bot',
-            content: "I apologize, but I couldn't fetch the tile sizes. Please try again or contact support if the issue persists.",
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          }
-        ]);
-      } finally {
-        setIsLoading(false);
-      }
     } else if (action === 'Careers 🧑🏻‍💼') {
       <ContactForm />
     }
@@ -611,11 +543,51 @@ export default function ChatInterface({ setShowChat }) {
           }
         ]);
 
+        // Present initial options for recommendation type
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'How would you like to explore our tile recommendations?',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [
+              { label: 'State/City-wise', action: 'LOCATION_WISE' },
+              { label: 'Size-wise', action: 'RECOMMENDATION_SIZE' },
+              { label: 'Customer-wise', action: 'CUSTOMER_WISE' }
+            ]
+          }
+        ]);
+      } catch (error) {
+        console.error('Error in recommendation flow:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'I apologize, but I encountered an error. Please try again.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [{ label: 'Try Again', action: 'RECOMMEND_TILE' }]
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (action === 'LOCATION_WISE') {
+      try {
+        setIsLoading(true);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'user',
+            content: 'Selected : location wise',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+
         // Add error handling and retry logic
         const fetchStates = async (retries = 3) => {
           for (let i = 0; i < retries; i++) {
             try {
-              const response = await fetch('https://obl-chatbot-backend.onrender.com/states');
+              const response = await fetch('http://127.0.0.1:8000/states');
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
@@ -670,7 +642,7 @@ export default function ChatInterface({ setShowChat }) {
 
       try {
         setIsLoading(true);
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/cities', {
+        const response = await fetch('http://127.0.0.1:8000/cities', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -733,7 +705,7 @@ export default function ChatInterface({ setShowChat }) {
       try {
         console.log(selectedState, selectedCity);
         setIsLoading(true);
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/fetch-names', {
+        const response = await fetch('http://127.0.0.1:8000/fetch-names', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -777,7 +749,327 @@ export default function ChatInterface({ setShowChat }) {
       }
 
 
-    } else if (action === 'DOWNLOAD_CATALOGUE') {
+    } // Category-wise flow
+    // In the SIZE_WISE case, update the action mapping:
+    else if (action === 'RECOMMENDATION_SIZE') {
+      try {
+        setIsLoading(true);
+        const response = await fetch('http://127.0.0.1:8000/sales-size');
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch sizes');
+        }
+
+        const data = await response.json();
+
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'Please select a tile size to explore our recommendations:',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: data.sizes.map(size => ({
+              label: `${size.size} (${size.quantity.toFixed(0)} units sold)`,
+              action: `SALES_SIZE${size.size.replace(/\s+/g, '_')}` // Changed from SIZE_ to SALES_SIZE
+            }))
+          }
+        ]);
+      } catch (error) {
+        console.error('Error fetching sizes:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'I apologize, but I encountered an error while fetching the sizes. Please try again later.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [{ label: 'Try Again', action: 'RECOMMEND_TILE' }]
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    // Update the size selection case with new action prefix
+    else if (action.startsWith('SALES_SIZE')) {
+      const selectedSize = action
+        .replace('SALES_SIZE', '')
+        .replace(/_/g, ' ');
+
+      setMessages(prev => [
+        ...prev,
+        {
+          type: 'user',
+          content: `Selected size: ${selectedSize}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+
+      try {
+        setIsLoading(true);
+        const response = await fetch('http://127.0.0.1:8000/sales-size-tiles', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ size: selectedSize })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch tiles');
+        }
+
+        const data = await response.json();
+
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: <Sales data={data} />,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }
+        ]);
+        setTimeout(scrollToBottom, 500);
+      } catch (error) {
+        console.error('Error fetching tiles:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'I apologize, but I encountered an error while fetching the tiles. Please try again later.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [{ label: 'Try Again', action: 'RECOMMEND_TILE' }]
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (action === 'CUSTOMER_WISE') {
+      try {
+        setIsLoading(true);
+        const response = await fetch('http://127.0.0.1:8000/customers');
+    
+        if (!response.ok) {
+          throw new Error('Failed to fetch customers');
+        }
+    
+        const data = await response.json();
+        const ITEMS_PER_PAGE = 25;
+        const totalCustomers = data.customers.length;
+        
+        // Show first 25 customers initially
+        const initialCustomers = data.customers.slice(0, ITEMS_PER_PAGE);
+        
+        setMessages(prev => {
+          const options = initialCustomers.map(customer => ({
+            label: `${customer.name} (${customer.quantity.toFixed(0)} units)`,
+            action: `CUSTOMER_NAME_${customer.name.replace(/\s+/g, '_')}`
+          }));
+          
+          // Add "See More" button if there are more customers
+          if (totalCustomers > ITEMS_PER_PAGE) {
+            options.push({
+              label: `See More 👈(${totalCustomers - ITEMS_PER_PAGE} more customers)`,
+              action: 'SHOW_MORE_CUSTOMERS'
+            });
+          }
+    
+          return [
+            ...prev,
+            {
+              type: 'bot',
+              content: 'Please select a customer to see their tile purchase history:',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              options: options,
+              metadata: {
+                allCustomers: data.customers,
+                currentPage: 1,
+                totalCustomers: totalCustomers
+              }
+            }
+          ];
+        });
+      } catch (error) {
+        console.error('Error fetching customers:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'I apologize, but I encountered an error while fetching the customers. Please try again later.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [{ label: 'Try Again', action: 'RECOMMEND_TILE' }]
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    // Add this new case to handle "See More" clicks
+    else if (action === 'SHOW_MORE_CUSTOMERS') {
+      const lastMessage = messages[messages.length - 1];
+      const { allCustomers, currentPage, totalCustomers } = lastMessage.metadata;
+      const ITEMS_PER_PAGE = 25;
+      
+      const startIndex = currentPage * ITEMS_PER_PAGE;
+      const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalCustomers);
+      const nextCustomers = allCustomers.slice(startIndex, endIndex);
+      
+      setMessages(prev => {
+        const options = nextCustomers.map(customer => ({
+          label: `${customer.name} (${customer.quantity.toFixed(0)} units)`,
+          action: `CUSTOMER_NAME_${customer.name.replace(/\s+/g, '_')}`
+        }));
+        
+        // Add "See More" button if there are still more customers
+        if (endIndex < totalCustomers) {
+          options.push({
+            label: `See More 👈(${totalCustomers - endIndex} more customers)`,
+            action: 'SHOW_MORE_CUSTOMERS'
+          });
+        }
+    
+        return [
+          ...prev,
+          {
+            type: 'bot',
+            content: `Showing customers ${startIndex + 1}-${endIndex} of ${totalCustomers}:`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: options,
+            metadata: {
+              allCustomers: allCustomers,
+              currentPage: currentPage + 1,
+              totalCustomers: totalCustomers
+            }
+          }
+        ];
+      });
+    }
+
+    // Add customer selection handler
+    else if (action.startsWith('CUSTOMER_NAME_')) {
+      const selectedCustomer = action
+        .replace('CUSTOMER_NAME_', '')
+        .replace(/_/g, ' ');
+
+      setMessages(prev => [
+        ...prev,
+        {
+          type: 'user',
+          content: `Selected customer: ${selectedCustomer}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+
+      try {
+        setIsLoading(true);
+        const response = await fetch('http://127.0.0.1:8000/customer-tiles', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ customer_name: selectedCustomer })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch tiles');
+        }
+
+        const data = await response.json();
+
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: <Sales data={data} />,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }
+        ]);
+        setTimeout(scrollToBottom, 500);
+      } catch (error) {
+        console.error('Error fetching tiles:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'I apologize, but I encountered an error while fetching the tiles. Please try again later.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [{ label: 'Try Again', action: 'RECOMMEND_TILE' }]
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (action.toUpperCase().includes('TILES')) {
+      // Convert the action to match backend expectations
+
+      // Convert the action to match backend expectations
+      const category = action
+        .toLowerCase()
+        .replace(/_/g, '-')
+        .replace(/\s+/g, '-');
+
+      // Store the selected category
+      setSelectedCategory(category);
+
+      console.log(selectedCategory)
+
+
+      setMessages(prev => [...prev, {
+        type: 'user',
+        content: `Selected category : ${category}`,
+        timestamp
+      }]);
+
+      try {
+        setIsLoading(true);
+
+        // Updated request to match backend expectations
+        const response = await fetch('http://127.0.0.1:8000/size', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ category }) // Match the backend model parameter name
+        });
+
+        if (!response.ok) {
+          // Log the error response for debugging
+          const errorData = await response.text();
+          console.error('Server response:', errorData);
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Format the sizes as buttons
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'Please select a size:',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: data.sizes.map(size => ({
+              label: size,
+              action: `SIZE_${size.replace(/[^0-9x]/g, '')}`
+            }))
+          }
+        ]);
+      } catch (error) {
+        console.error('Error details:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: "I apologize, but I couldn't fetch the tile sizes. Please try again or contact support if the issue persists.",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    } 
+    else if (action === 'DOWNLOAD_CATALOGUE') {
       setMessages(prev => [
         ...prev,
         {

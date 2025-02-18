@@ -9,13 +9,13 @@ const Sales = ({ data }) => {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        // Extract tile names and quantities
-        const tile_names = data.tiles.map(tile => tile.name);
-      
-        const quantities = data.tiles.map(tile => tile.quantity.toString());
+        // Filter out tiles with zero quantity and create arrays
+        const filteredTiles = data.tiles.filter(tile => tile.quantity > 0);
+        const tile_names = filteredTiles.map(tile => tile.name);
+        const quantities = filteredTiles.map(tile => tile.quantity.toString());
 
         // Make API request
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/fetch_sales_data', {
+        const response = await fetch('http://127.0.0.1:8000/fetch_sales_data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -29,12 +29,15 @@ const Sales = ({ data }) => {
 
         const responseData = await response.json();
         
-        // Combine API response with quantities
+        // Calculate new totals after filtering
+        const total_quantity = quantities.reduce((sum, qty) => sum + parseInt(qty), 0);
+        
+        // Combine API response with filtered quantities
         setSalesData({
           tiles: responseData.tiles,
           quantities: quantities,
-          total_unique_tiles: data.total_unique_tiles,
-          total_quantity: data.total_quantity
+          total_unique_tiles: tile_names.length,
+          total_quantity: total_quantity
         });
       } catch (err) {
         console.error('Fetch error:', err);

@@ -116,6 +116,41 @@ async def get_cities(request: StateRequest):
         logger.error(f"Error in get_cities: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+def clean_description(desc: str, desc2: str) -> str:
+    """
+    Clean and combine tile descriptions according to specified rules:
+    - Removes size patterns (e.g., '300X300')
+    - Removes piece counts and Prem/Std suffixes
+    - Removes parenthetical suffixes like (P)
+    - Removes 'Asrt' keyword
+    """
+    try:
+        # Remove size pattern from description
+        desc = re.sub(r'\d+[Xx]\d+\s*', '', desc.strip())
+        
+        # Remove pieces pattern and Prem/Std suffix from description_2
+        desc2 = re.sub(r'\d+\s*(?:Pc|Pcs)\s*(?:Prem|Std)\s*$', '', desc2.strip())
+        
+        # Combine descriptions
+        combined = ' '.join((desc + ' ' + desc2).split())
+        
+        # Remove patterns like (P) or (S) - handles any single letter in parentheses
+        combined = re.sub(r'\s*\([A-Za-z]\)\s*', '', combined)
+        
+        # Remove 'Asrt' keyword (case insensitive)
+        combined = re.sub(r'\s*Asrt\s*', ' ', combined, flags=re.IGNORECASE)
+
+        combined = re.sub(r'\s*Tile\s*', ' ', combined, flags=re.IGNORECASE)
+        
+        # Ensure there are no extra spaces
+        combined = ' '.join(combined.split())
+        
+        return combined
+        
+    except Exception as e:
+        logger.error(f"Error in clean_description: {str(e)}")
+        return ""
+
 @app.post("/fetch-names")
 async def fetch_names(request: LocationRequest):
     try:
@@ -254,6 +289,189 @@ async def fetch_sales_data(request: TileNamesRequest):
             status_code=500,
             detail=f"Error processing request: {str(e)}"
         )
+
+class SizeRequest(BaseModel):
+    size: str
+
+def extract_size(description: str) -> Optional[str]:
+    """Extract size from tile description and format it with 'mm'"""
+    # Look for patterns like 300X300, 600x600, etc.
+    size_pattern = r'(\d+)[Xx](\d+)'
+    match = re.search(size_pattern, description)
+    if match:
+        return f"{match.group(1)}x{match.group(2)} mm"
+    return None
+
+@app.get("/sales-size")
+async def get_sales_sizes():
+    try:
+        data = cache.get_data()
+        if not data:
+            raise HTTPException(status_code=500, detail="Unable to fetch data")
+        
+        df = pd.DataFrame(data)
+        
+        # Initialize dictionary to store size quantities
+        size_quantities = {}
+        
+        # Process each row
+        for _, row in df.iterrows():
+            if pd.notna(row['Description']):
+                size = extract_size(row['Description'])
+                if size:
+                    quantity = float(row['Qty_Crt']) if pd.notna(row['Qty_Crt']) else 0
+                    size_quantities[size] = size_quantities.get(size, 0) + quantity
+        
+        # Convert to list of dictionaries and sort by quantity
+        sizes_list = [
+            {"size": size, "quantity": round(quantity, 2)}
+            for size, quantity in size_quantities.items()
+        ]
+        
+        # Sort by quantity in descending order
+        sizes_list.sort(key=lambda x: x['quantity'], reverse=True)
+        
+        return {
+            "sizes": sizes_list,
+            "total_unique_sizes": len(sizes_list),
+            "total_quantity": round(sum(size['quantity'] for size in sizes_list), 2)
+        }
+    except Exception as e:
+        logger.error(f"Error in get_sales_sizes: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/sales-size-tiles")
+async def get_tiles_by_size(request: SizeRequest):
+    try:
+        data = cache.get_data()
+        if not data:
+            raise HTTPException(status_code=500, detail="Unable to fetch data")
+        
+        df = pd.DataFrame(data)
+        
+        # Remove 'mm' and convert to the format in the Description field
+        size_pattern = request.size.replace(" mm", "")
+        
+        # Filter tiles by size
+        filtered_data = df[df['Description'].str.contains(size_pattern, case=False, na=False)]
+        
+        if len(filtered_data) == 0:
+            return {
+                "tiles": [],
+                "message": f"No tiles found for size: {request.size}"
+            }
+        
+        # Process tiles similar to fetch-names endpoint
+        tile_quantities = {}
+        for _, row in filtered_data.iterrows():
+            if pd.notna(row['Description']) and pd.notna(row['Description_2']):
+                clean_name = clean_description(row['Description'], row['Description_2'])
+                if clean_name:
+                    quantity = float(row['Qty_Crt']) if pd.notna(row['Qty_Crt']) else 0
+                    tile_quantities[clean_name] = tile_quantities.get(clean_name, 0) + quantity
+        
+        tiles_list = [
+            {"name": name, "quantity": round(quantity, 2)}
+            for name, quantity in tile_quantities.items()
+        ]
+        
+        # Sort by quantity in descending order
+        tiles_list.sort(key=lambda x: x['quantity'], reverse=True)
+        
+        return {
+            "tiles": tiles_list,
+            "size": request.size,
+            "total_unique_tiles": len(tiles_list),
+            "total_quantity": round(sum(tile['quantity'] for tile in tiles_list), 2)
+        }
+    except Exception as e:
+        logger.error(f"Error in get_tiles_by_size: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# New Pydantic model for customer request
+class CustomerRequest(BaseModel):
+    customer_name: str
+
+@app.get("/customers")
+async def get_customers():
+    try:
+        data = cache.get_data()
+        if not data:
+            raise HTTPException(status_code=500, detail="Unable to fetch data")
+        
+        df = pd.DataFrame(data)
+        
+        # Get unique customers and their total purchase quantities
+        customer_quantities = {}
+        for _, row in df.iterrows():
+            customer = row['Sell_to_Customer_Name']
+            if pd.notna(customer):
+                quantity = float(row['Qty_Crt']) if pd.notna(row['Qty_Crt']) else 0
+                customer_quantities[customer] = customer_quantities.get(customer, 0) + quantity
+        
+        # Convert to list of dictionaries and sort by quantity
+        customers_list = [
+            {"name": name, "quantity": round(quantity, 2)}
+            for name, quantity in customer_quantities.items()
+        ]
+        
+        # Sort by quantity in descending order
+        customers_list.sort(key=lambda x: x['quantity'], reverse=True)
+        
+        return {
+            "customers": customers_list,
+            "total_unique_customers": len(customers_list),
+            "total_quantity": round(sum(customer['quantity'] for customer in customers_list), 2)
+        }
+    except Exception as e:
+        logger.error(f"Error in get_customers: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/customer-tiles")
+async def get_customer_tiles(request: CustomerRequest):
+    try:
+        data = cache.get_data()
+        if not data:
+            raise HTTPException(status_code=500, detail="Unable to fetch data")
+        
+        df = pd.DataFrame(data)
+        
+        # Filter data for specific customer
+        customer_data = df[df['Sell_to_Customer_Name'] == request.customer_name]
+        
+        if len(customer_data) == 0:
+            return {
+                "tiles": [],
+                "message": f"No tiles found for customer: {request.customer_name}"
+            }
+        
+        # Process tiles similar to fetch-names endpoint
+        tile_quantities = {}
+        for _, row in customer_data.iterrows():
+            if pd.notna(row['Description']) and pd.notna(row['Description_2']):
+                clean_name = clean_description(row['Description'], row['Description_2'])
+                if clean_name:
+                    quantity = float(row['Qty_Crt']) if pd.notna(row['Qty_Crt']) else 0
+                    tile_quantities[clean_name] = tile_quantities.get(clean_name, 0) + quantity
+        
+        tiles_list = [
+            {"name": name, "quantity": round(quantity, 2)}
+            for name, quantity in tile_quantities.items()
+        ]
+        
+        # Sort by quantity in descending order
+        tiles_list.sort(key=lambda x: x['quantity'], reverse=True)
+        
+        return {
+            "tiles": tiles_list,
+            "customer": request.customer_name,
+            "total_unique_tiles": len(tiles_list),
+            "total_quantity": round(sum(tile['quantity'] for tile in tiles_list), 2)
+        }
+    except Exception as e:
+        logger.error(f"Error in get_customer_tiles: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/general")
 async def general_endpoint(query: dict):
     try:
