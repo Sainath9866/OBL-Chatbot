@@ -15,7 +15,7 @@ const Sales = ({ data }) => {
         const quantities = filteredTiles.map(tile => tile.quantity.toString());
 
         // Make API request
-        const response = await fetch('http://127.0.0.1:8000/fetch_sales_data', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/fetch_sales_data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

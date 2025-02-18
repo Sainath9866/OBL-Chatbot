@@ -203,7 +203,7 @@ export default function ChatInterface({ setShowChat }) {
     //     setSelectedCategory(tileCategory);
 
     //     // Make request to size endpoint
-    //     const response = await fetch('http://127.0.0.1:8000/size', {
+    //     const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
     //       method: 'POST',
     //       headers: {
     //         'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ export default function ChatInterface({ setShowChat }) {
     // Default chat behavior for non-tile requests
     try {
       setIsLoading(true);
-      const response = await fetch('http://127.0.0.1:8000/chat', {
+      const response = await fetch('https://obl-chatbot-backend.onrender.com/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -587,7 +587,7 @@ export default function ChatInterface({ setShowChat }) {
         const fetchStates = async (retries = 3) => {
           for (let i = 0; i < retries; i++) {
             try {
-              const response = await fetch('http://127.0.0.1:8000/states');
+              const response = await fetch('https://obl-chatbot-backend.onrender.com/states');
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
@@ -642,7 +642,7 @@ export default function ChatInterface({ setShowChat }) {
 
       try {
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/cities', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/cities', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -705,7 +705,7 @@ export default function ChatInterface({ setShowChat }) {
       try {
         console.log(selectedState, selectedCity);
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/fetch-names', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/fetch-names', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -754,7 +754,7 @@ export default function ChatInterface({ setShowChat }) {
     else if (action === 'RECOMMENDATION_SIZE') {
       try {
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/sales-size');
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/sales-size');
 
         if (!response.ok) {
           throw new Error('Failed to fetch sizes');
@@ -807,7 +807,7 @@ export default function ChatInterface({ setShowChat }) {
 
       try {
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/sales-size-tiles', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/sales-size-tiles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -847,7 +847,7 @@ export default function ChatInterface({ setShowChat }) {
     } else if (action === 'CUSTOMER_WISE') {
       try {
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/customers');
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/customers');
     
         if (!response.ok) {
           throw new Error('Failed to fetch customers');
@@ -963,7 +963,7 @@ export default function ChatInterface({ setShowChat }) {
 
       try {
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/customer-tiles', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/customer-tiles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1025,7 +1025,7 @@ export default function ChatInterface({ setShowChat }) {
         setIsLoading(true);
 
         // Updated request to match backend expectations
-        const response = await fetch('http://127.0.0.1:8000/size', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
