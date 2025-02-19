@@ -472,6 +472,33 @@ async def get_customer_tiles(request: CustomerRequest):
         logger.error(f"Error in get_customer_tiles: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class ApplicationRequest(BaseModel):
+    tiles: List[dict]
+
+@app.post("/unique-applications")
+async def get_customer_tiles(request: ApplicationRequest):
+    try:
+        if not request.tiles:
+            return []
+        
+        # Extract all applications
+        all_applications = []
+        for tile in request.tiles:
+            if 'applications' in tile and tile['applications']:
+                # Split applications string and strip whitespace
+                apps = [app.strip() for app in tile['applications'].split(',')]
+                all_applications.extend(apps)
+        
+        # Convert to set to get unique values and back to sorted list
+        unique_applications = sorted(list(set(all_applications)))
+        
+        return unique_applications
+
+    except Exception as e:
+        logger.error(f"Error in get_customer_tiles: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+        
 @app.post("/general")
 async def general_endpoint(query: dict):
     try:
