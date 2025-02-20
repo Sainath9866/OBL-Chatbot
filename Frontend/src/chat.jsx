@@ -20,7 +20,7 @@ const getGreeting = () => {
 
 const initialMessage = {
   type: 'bot',
-  content: `${getGreeting()}. 👋 Thank you for reaching out to Orient Bell Tiles help desk.\nKindly choose one of the options👇`,
+  content: `${getGreeting()}. 👋 Thank you for reaching out to Orientbell Tiles help desk.\nKindly choose one of the options👇`,
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   options: [
     { label: 'Show Tiles 🧱', action: 'SHOW_TILES' },
@@ -29,7 +29,7 @@ const initialMessage = {
     { label: 'Contact us 📞', action: 'CONTACT_US' },
     { label: 'Download Catalogue 📑', action: 'DOWNLOAD_CATALOGUE' },
     { label: 'Careers 🧑🏻‍💼', action: 'Careers 🧑🏻‍💼' },
-    { label: 'Confused? Shall I recommend tiles? 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' }
+    { label: 'Get Recommendations from Orientbell Tiles 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' }
   ]
 };
 
@@ -89,7 +89,7 @@ export default function ChatInterface({ setShowChat }) {
   const [messages, setMessages] = useState([
     {
       type: 'bot',
-      content: `${getGreeting()}. 👋 Thank you for reaching out to Orient Bell Tiles help desk.\nKindly choose one of the options👇`,
+      content: `${getGreeting()}. 👋 Thank you for reaching out to Orientbell Tiles help desk.\nKindly choose one of the options👇`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       options: [
         { label: 'Show Tiles 🧱', action: 'SHOW_TILES' },
@@ -98,7 +98,7 @@ export default function ChatInterface({ setShowChat }) {
         { label: 'Contact us 📞', action: 'CONTACT_US' },
         { label: 'Download Catalogue 📑', action: 'DOWNLOAD_CATALOGUE' },
         { label: 'Careers 🧑🏻‍💼', action: 'Careers 🧑🏻‍💼' },
-        { label: 'Confused? Shall I recommend tiles? 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' },
+        { label: 'Get Recommendations from Orientbell Tiles 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' },
       ]
     }
   ]);
@@ -373,7 +373,7 @@ export default function ChatInterface({ setShowChat }) {
             { label: 'Contact us 📞', action: 'CONTACT_US' },
             { label: 'Download Catalogue 📑', action: 'DOWNLOAD_CATALOGUE' },
             { label: 'Careers 🧑🏻‍💼', action: 'Careers 🧑🏻‍💼' },
-            { label: 'Confused? Shall I recommend tiles? 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' },
+            { label: 'Get Recommendations from Orientbell Tiles 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' },
           ]
         }
       ]);
@@ -415,7 +415,7 @@ export default function ChatInterface({ setShowChat }) {
           type: 'bot',
           content: (
             <>
-              Orient Bell Tiles is a well-known tile manufacturing company that offers a wide range of high-quality tiles for various applications, including residential and commercial spaces.Thank you for choosing Orientbell Tiles.For more details please visit{' '}
+              Orientbell Tiles is a well-known tile manufacturing company that offers a wide range of high-quality tiles for various applications, including residential and commercial spaces.Thank you for choosing Orientbell Tiles.For more details please visit{' '}
               <a
                 href="https://www.orientbell.com/about-us"
                 target="_blank"
@@ -439,7 +439,7 @@ export default function ChatInterface({ setShowChat }) {
             { label: 'Contact us 📞', action: 'CONTACT_US' },
             { label: 'Download Catalogue 📑', action: 'DOWNLOAD_CATALOGUE' },
             { label: 'Careers 🧑🏻‍💼', action: 'Careers 🧑🏻‍💼' },
-            { label: 'Confused? Shall I recommend tiles? 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' },
+            { label: 'Get Recommendations from Orientbell Tiles 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' },
           ]
         }
       ]);
@@ -479,7 +479,7 @@ export default function ChatInterface({ setShowChat }) {
             { label: 'Contact us 📞', action: 'CONTACT_US' },
             { label: 'Download Catalogue 📑', action: 'DOWNLOAD_CATALOGUE' },
             { label: 'Careers 🧑🏻‍💼', action: 'Careers 🧑🏻‍💼' },
-            { label: 'Confused? Shall I recommend tiles? 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' },
+            { label: 'Get Recommendations from Orientbell Tiles 🤔', action: 'RECOMMEND_TILE', className: 'col-span-2' },
           ]
         }
 
@@ -752,7 +752,7 @@ export default function ChatInterface({ setShowChat }) {
           ...prev,
           {
             type: 'bot',
-            content: 'Please select the application area you are interested in:',
+            content: 'Select the applicable area :',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             options: uniqueApplications.map(app => ({
               label: app,
@@ -786,6 +786,14 @@ export default function ChatInterface({ setShowChat }) {
      // Category-wise flow
     // In the SIZE_WISE case, update the action mapping:
     else if (action === 'RECOMMENDATION_SIZE') {
+      setMessages(prev => [
+        ...prev,
+        {
+          type: 'user',
+          content: 'Selected : Size-wise',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
       try {
         setIsLoading(true);
         const response = await fetch('https://obl-chatbot-backend.onrender.com/sales-size');
@@ -803,7 +811,7 @@ export default function ChatInterface({ setShowChat }) {
             content: 'Please select a tile size to explore our recommendations:',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             options: data.sizes.map(size => ({
-              label: `${size.size} (${size.quantity.toFixed(0)} units sold)`,
+              label: `${size.size}`,
               action: `SALES_SIZE${size.size.replace(/\s+/g, '_')}` // Changed from SIZE_ to SALES_SIZE
             }))
           }
@@ -889,7 +897,7 @@ export default function ChatInterface({ setShowChat }) {
           ...prev,
           {
             type: 'bot',
-            content: 'Please select the application area you are interested in:',
+            content: 'Select the applicable area :',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             options: uniqueApplications.map(app => ({
               label: app,
@@ -918,6 +926,14 @@ export default function ChatInterface({ setShowChat }) {
         setIsLoading(false);
       }
     } else if (action === 'CUSTOMER_WISE') {
+      setMessages(prev => [
+        ...prev,
+        {
+          type: 'user',
+          content: 'Selected : Customer-wise',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
       try {
         setIsLoading(true);
         const response = await fetch('https://obl-chatbot-backend.onrender.com/customers');
@@ -935,7 +951,7 @@ export default function ChatInterface({ setShowChat }) {
 
         setMessages(prev => {
           const options = initialCustomers.map(customer => ({
-            label: `${customer.name} (${customer.quantity.toFixed(0)} units)`,
+            label: `${customer.name}`,
             action: `CUSTOMER_NAME_${customer.name.replace(/\s+/g, '_')}`
           }));
 
@@ -1083,7 +1099,7 @@ export default function ChatInterface({ setShowChat }) {
           ...prev,
           {
             type: 'bot',
-            content: 'Please select the application area you are interested in:',
+            content: 'Select the applicable area :',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             options: uniqueApplications.map(app => ({
               label: app,
@@ -1166,7 +1182,7 @@ else if (action.startsWith('APPLICATION_')) {
       ...prev,
       {
         type: 'user',
-        content: `Selected application: ${selectedApplication}`,
+        content: `Selected applicable area : ${selectedApplication}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       },
       {
@@ -1319,7 +1335,7 @@ else if (action.startsWith('APPLICATION_')) {
               />
             </div>
             <div className="text-white">
-              <div className="font-semibold text-xs md:text-sm">Orient Bell Tiles Help Desk</div>
+              <div className="font-semibold text-xs md:text-sm">Orientbell Tiles Help Desk</div>
               <div className="text-[10px] md:text-xs flex items-center gap-2">
                 <span className="w-2 h-2 bg-green-400 rounded-full"></span>
                 {isLoading ? 'Typing...' : 'We are online to assist you'}
