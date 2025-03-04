@@ -203,7 +203,7 @@ export default function ChatInterface({ setShowChat }) {
     //     setSelectedCategory(tileCategory);
 
     //     // Make request to size endpoint
-    //     const response = await fetch('http://127.0.0.1:8000/size', {
+    //     const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
     //       method: 'POST',
     //       headers: {
     //         'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ export default function ChatInterface({ setShowChat }) {
     // Default chat behavior for non-tile requests
     try {
       setIsLoading(true);
-      const response = await fetch('http://127.0.0.1:8000/chat', {
+      const response = await fetch('https://obl-chatbot-backend.onrender.com/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -588,7 +588,7 @@ export default function ChatInterface({ setShowChat }) {
         const fetchStates = async (retries = 3) => {
           for (let i = 0; i < retries; i++) {
             try {
-              const response = await fetch('http://127.0.0.1:8000/states');
+              const response = await fetch('https://obl-chatbot-backend.onrender.com/states');
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
@@ -643,7 +643,7 @@ export default function ChatInterface({ setShowChat }) {
 
       try {
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/cities', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/cities', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -704,7 +704,7 @@ export default function ChatInterface({ setShowChat }) {
       try {
         setIsLoading(true);
         // First fetch to get tiles and quantities for the city
-        const response = await fetch('http://127.0.0.1:8000/fetch-names', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/fetch-names', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -725,7 +725,7 @@ export default function ChatInterface({ setShowChat }) {
         const filteredTiles = data.tiles.filter(tile => tile.quantity > 0);
 
         // Get unique applications from the fetch_sales_data endpoint
-        const tileNamesResponse = await fetch('http://127.0.0.1:8000/fetch_sales_data', {
+        const tileNamesResponse = await fetch('https://obl-chatbot-backend.onrender.com/fetch_sales_data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -798,7 +798,7 @@ export default function ChatInterface({ setShowChat }) {
       ]);
       try {
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/sales-size');
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/sales-size');
 
         if (!response.ok) {
           throw new Error('Failed to fetch sizes');
@@ -852,7 +852,7 @@ export default function ChatInterface({ setShowChat }) {
       try {
         setIsLoading(true);
         // First fetch to get tiles and quantities for the size
-        const response = await fetch('http://127.0.0.1:8000/sales-size-tiles', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/sales-size-tiles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -870,7 +870,7 @@ export default function ChatInterface({ setShowChat }) {
         const filteredTiles = data.tiles.filter(tile => tile.quantity > 0);
 
         // Get unique applications from the fetch_sales_data endpoint
-        const tileNamesResponse = await fetch('http://127.0.0.1:8000/fetch_sales_data', {
+        const tileNamesResponse = await fetch('https://obl-chatbot-backend.onrender.com/fetch_sales_data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -938,7 +938,7 @@ export default function ChatInterface({ setShowChat }) {
       ]);
       try {
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/customers');
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/customers');
 
         if (!response.ok) {
           throw new Error('Failed to fetch customers');
@@ -1053,7 +1053,7 @@ export default function ChatInterface({ setShowChat }) {
       try {
         setIsLoading(true);
         // First fetch to get tiles and quantities for the customer
-        const response = await fetch('http://127.0.0.1:8000/customer-tiles', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/customer-tiles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1071,7 +1071,7 @@ export default function ChatInterface({ setShowChat }) {
         const filteredTiles = data.tiles.filter(tile => tile.quantity > 0);
 
         // Get unique applications from the fetch_sales_data endpoint
-        const tileNamesResponse = await fetch('http://127.0.0.1:8000/fetch_sales_data', {
+        const tileNamesResponse = await fetch('https://obl-chatbot-backend.onrender.com/fetch_sales_data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1141,7 +1141,7 @@ export default function ChatInterface({ setShowChat }) {
           }
         ]);
 
-        const response = await fetch('http://127.0.0.1:8000/territory');
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/territory');
         if (!response.ok) {
           throw new Error('Failed to fetch territories');
         }
@@ -1192,7 +1192,7 @@ export default function ChatInterface({ setShowChat }) {
     
       try {
         setIsLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/territory-tiles', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/territory-tiles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1253,7 +1253,7 @@ export default function ChatInterface({ setShowChat }) {
         }
         
         // First fetch to get tiles and quantities for the territory and size
-        const response = await fetch('http://127.0.0.1:8000/territory-size-tiles', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/territory-size-tiles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1274,7 +1274,7 @@ export default function ChatInterface({ setShowChat }) {
         const filteredTiles = data.tiles.filter(tile => tile.quantity > 0);
         
         // Get unique applications from the fetch_sales_data endpoint
-        const tileNamesResponse = await fetch('http://127.0.0.1:8000/fetch_sales_data', {
+        const tileNamesResponse = await fetch('https://obl-chatbot-backend.onrender.com/fetch_sales_data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1442,7 +1442,7 @@ export default function ChatInterface({ setShowChat }) {
         setIsLoading(true);
 
         // Updated request to match backend expectations
-        const response = await fetch('http://127.0.0.1:8000/size', {
+        const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
