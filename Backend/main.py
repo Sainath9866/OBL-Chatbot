@@ -498,6 +498,132 @@ async def get_customer_tiles(request: ApplicationRequest):
         logger.error(f"Error in get_customer_tiles: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/territory")
+async def get_territories():
+    try:
+        data = cache.get_data()
+        if not data:
+            raise HTTPException(status_code=500, detail="Unable to fetch data")
+        
+        df = pd.DataFrame(data)
+        territories = sorted([territory for territory in df['Sales_Territory'].unique().tolist() if territory])
+        
+        return {"territories": territories}
+    except Exception as e:
+        logger.error(f"Error in get_territories: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class TerritoryRequest(BaseModel):
+    territory_name: str
+
+@app.post("/territory-tiles")
+async def get_territory_tiles(request: TerritoryRequest):
+    try:
+        data = cache.get_data()
+        if not data:
+            raise HTTPException(status_code=500, detail="Unable to fetch data")
+        
+        df = pd.DataFrame(data)
+        
+        # Filter data for specific territory
+        territory_data = df[df['Sales_Territory'] == request.territory_name]
+        
+        if len(territory_data) == 0:
+            return {
+                "tiles": [],
+                "message": f"No tiles found for territory: {request.territory_name}"
+            }
+        
+        # Process tiles to extract sizes
+        size_quantities = {}
+        for _, row in territory_data.iterrows():
+            if pd.notna(row['Description']):
+                size = extract_size(row['Description'])
+                if size:
+                    quantity = float(row['Qty_Crt']) if pd.notna(row['Qty_Crt']) else 0
+                    size_quantities[size] = size_quantities.get(size, 0) + quantity
+        
+        # Convert to list of dictionaries and sort by quantity
+        sizes_list = [
+            {"size": size, "quantity": round(quantity, 2)}
+            for size, quantity in size_quantities.items()
+        ]
+        
+        # Sort by quantity in descending order
+        sizes_list.sort(key=lambda x: x['quantity'], reverse=True)
+        
+        return {
+            "sizes": sizes_list,
+            "territory": request.territory_name,
+            "total_unique_sizes": len(sizes_list),
+            "total_quantity": round(sum(size['quantity'] for size in sizes_list), 2)
+        }
+    except Exception as e:
+        logger.error(f"Error in get_territory_tiles: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class TerritorySizeRequest(BaseModel):
+    territory_name: str
+    size: str
+
+@app.post("/territory-size-tiles")
+async def get_territory_size_tiles(request: TerritorySizeRequest):
+    try:
+        data = cache.get_data()
+        if not data:
+            raise HTTPException(status_code=500, detail="Unable to fetch data")
+        
+        df = pd.DataFrame(data)
+        
+        # Filter data for specific territory
+        territory_data = df[df['Sales_Territory'] == request.territory_name]
+        
+        if len(territory_data) == 0:
+            return {
+                "tiles": [],
+                "message": f"No tiles found for territory: {request.territory_name}"
+            }
+        
+        # Remove 'mm' and convert to the format in the Description field
+        size_pattern = request.size.replace(" mm", "")
+        
+        # Filter tiles by size
+        filtered_data = territory_data[territory_data['Description'].str.contains(size_pattern, case=False, na=False)]
+        
+        if len(filtered_data) == 0:
+            return {
+                "tiles": [],
+                "message": f"No tiles found for size: {request.size} in territory: {request.territory_name}"
+            }
+        
+        # Process tiles similar to fetch-names endpoint
+        tile_quantities = {}
+        for _, row in filtered_data.iterrows():
+            if pd.notna(row['Description']) and pd.notna(row['Description_2']):
+                clean_name = clean_description(row['Description'], row['Description_2'])
+                if clean_name:
+                    quantity = float(row['Qty_Crt']) if pd.notna(row['Qty_Crt']) else 0
+                    tile_quantities[clean_name] = tile_quantities.get(clean_name, 0) + quantity
+        
+        tiles_list = [
+            {"name": name, "quantity": round(quantity, 2)}
+            for name, quantity in tile_quantities.items()
+        ]
+        
+        # Sort by quantity in descending order
+        tiles_list.sort(key=lambda x: x['quantity'], reverse=True)
+        
+        return {
+            "tiles": tiles_list,
+            "territory": request.territory_name,
+            "size": request.size,
+            "total_unique_tiles": len(tiles_list),
+            "total_quantity": round(sum(tile['quantity'] for tile in tiles_list), 2)
+        }
+    except Exception as e:
+        logger.error(f"Error in get_territory_size_tiles: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
         
 @app.post("/general")
 async def general_endpoint(query: dict):

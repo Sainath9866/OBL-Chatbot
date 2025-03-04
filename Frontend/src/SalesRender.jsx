@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 const ITEMS_PER_PAGE = 25;
 
 const SalesRender = ({ salesData }) => {
+  console.log('Sales data in salesRender.jsx:', salesData);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isVisible, setIsVisible] = useState(true);

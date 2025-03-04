@@ -103,12 +103,13 @@ export default function ChatInterface({ setShowChat }) {
     }
   ]);
   const [visibleCategories, setVisibleCategories] = useState(9);
-  const [allCategories] = useState(["Bathroom-tiles", "Living-tiles", "Kitchen-tiles", "Bedroom-tiles", "Balcony-tiles", "Swimming Pool-tiles", "Accent-tiles", "Outdoor-tiles", "Office-tiles", "Pathway-tiles", "Dining-tiles", "Hospital-tiles", "High Traffic-tiles", "bar-tiles", "Restaurant-tiles", "School & College-tiles", "Office-tiles", "Commercial-tiles", "Outdoor Area-tiles", "Parking-tiles", "Porch-tiles", "Automotive-tiles","Airport-tiles", "Metro Station-tiles","Warehouse-tiles"]);
+  const [allCategories] = useState(["Bathroom-tiles", "Living-tiles", "Kitchen-tiles", "Bedroom-tiles", "Balcony-tiles", "Swimming Pool-tiles", "Accent-tiles", "Outdoor-tiles", "Office-tiles", "Pathway-tiles", "Dining-tiles", "Hospital-tiles", "High Traffic-tiles", "bar-tiles", "Restaurant-tiles", "School & College-tiles", "Office-tiles", "Commercial-tiles", "Outdoor Area-tiles", "Parking-tiles", "Porch-tiles", "Automotive-tiles", "Airport-tiles", "Metro Station-tiles", "Warehouse-tiles"]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedState, setSelectedState] = useState(null)
+  const [selectedState, setSelectedState] = useState(null);
+  const [selectedTerritory, setSelectedTerritory] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const scrollToBottom = () => {
@@ -132,7 +133,7 @@ export default function ChatInterface({ setShowChat }) {
     </div>
   );
 
- 
+
   const { currentAction, actionCounter } = useAction();
 
   useEffect(() => {
@@ -202,7 +203,7 @@ export default function ChatInterface({ setShowChat }) {
     //     setSelectedCategory(tileCategory);
 
     //     // Make request to size endpoint
-    //     const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
+    //     const response = await fetch('http://127.0.0.1:8000/size', {
     //       method: 'POST',
     //       headers: {
     //         'Content-Type': 'application/json',
@@ -238,7 +239,7 @@ export default function ChatInterface({ setShowChat }) {
     // Default chat behavior for non-tile requests
     try {
       setIsLoading(true);
-      const response = await fetch('https://obl-chatbot-backend.onrender.com/chat', {
+      const response = await fetch('http://127.0.0.1:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -552,7 +553,8 @@ export default function ChatInterface({ setShowChat }) {
             options: [
               { label: 'State/City-wise', action: 'LOCATION_WISE' },
               { label: 'Size-wise', action: 'RECOMMENDATION_SIZE' },
-              { label: 'Customer-wise', action: 'CUSTOMER_WISE' }
+              { label: 'Customer-wise', action: 'CUSTOMER_WISE' },
+              { label: 'Territory-wise', action: 'TERRITORY_WISE' }
             ]
           }
         ]);
@@ -586,7 +588,7 @@ export default function ChatInterface({ setShowChat }) {
         const fetchStates = async (retries = 3) => {
           for (let i = 0; i < retries; i++) {
             try {
-              const response = await fetch('https://obl-chatbot-backend.onrender.com/states');
+              const response = await fetch('http://127.0.0.1:8000/states');
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
@@ -641,7 +643,7 @@ export default function ChatInterface({ setShowChat }) {
 
       try {
         setIsLoading(true);
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/cities', {
+        const response = await fetch('http://127.0.0.1:8000/cities', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -689,7 +691,7 @@ export default function ChatInterface({ setShowChat }) {
         .replace(/_/g, ' ')
         .toLowerCase()
         .replace(/\b\w/g, (char) => char.toUpperCase());
-    
+
       setMessages(prev => [
         ...prev,
         {
@@ -698,56 +700,56 @@ export default function ChatInterface({ setShowChat }) {
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
-    
+
       try {
         setIsLoading(true);
         // First fetch to get tiles and quantities for the city
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/fetch-names', {
+        const response = await fetch('http://127.0.0.1:8000/fetch-names', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
-            state: selectedState, 
-            city: selectedCity 
+          body: JSON.stringify({
+            state: selectedState,
+            city: selectedCity
           })
         });
-    
+
         if (!response.ok) {
           throw new Error('Failed to fetch tiles');
         }
-    
+
         const data = await response.json();
-    
+
         // Filter out tiles with zero quantity
         const filteredTiles = data.tiles.filter(tile => tile.quantity > 0);
-    
+
         // Get unique applications from the fetch_sales_data endpoint
-        const tileNamesResponse = await fetch('https://obl-chatbot-backend.onrender.com/fetch_sales_data', {
+        const tileNamesResponse = await fetch('http://127.0.0.1:8000/fetch_sales_data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             tile_names: filteredTiles.map(tile => tile.name)
           }),
         });
-    
+
         if (!tileNamesResponse.ok) {
           throw new Error('Failed to fetch tile details');
         }
-    
+
         const tileDetailsData = await tileNamesResponse.json();
         console.log(tileDetailsData)
         // Extract unique applications from the detailed tiles data
         const uniqueApplications = [...new Set(
           tileDetailsData.tiles
             .filter(tile => tile && tile.applications)
-            .flatMap(tile => 
+            .flatMap(tile =>
               tile.applications.split(', ').map(app => app.trim())
             )
         )].sort();
-    
+
         setMessages(prev => [
           ...prev,
           {
@@ -783,7 +785,7 @@ export default function ChatInterface({ setShowChat }) {
     }
 
 
-     // Category-wise flow
+    // Category-wise flow
     // In the SIZE_WISE case, update the action mapping:
     else if (action === 'RECOMMENDATION_SIZE') {
       setMessages(prev => [
@@ -796,7 +798,7 @@ export default function ChatInterface({ setShowChat }) {
       ]);
       try {
         setIsLoading(true);
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/sales-size');
+        const response = await fetch('http://127.0.0.1:8000/sales-size');
 
         if (!response.ok) {
           throw new Error('Failed to fetch sizes');
@@ -837,7 +839,7 @@ export default function ChatInterface({ setShowChat }) {
       const selectedSize = action
         .replace('SALES_SIZE', '')
         .replace(/_/g, ' ');
-    
+
       setMessages(prev => [
         ...prev,
         {
@@ -846,53 +848,53 @@ export default function ChatInterface({ setShowChat }) {
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
-    
+
       try {
         setIsLoading(true);
         // First fetch to get tiles and quantities for the size
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/sales-size-tiles', {
+        const response = await fetch('http://127.0.0.1:8000/sales-size-tiles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ size: selectedSize })
         });
-    
+
         if (!response.ok) {
           throw new Error('Failed to fetch tiles');
         }
-    
+
         const data = await response.json();
-    
+
         // Filter out tiles with zero quantity
         const filteredTiles = data.tiles.filter(tile => tile.quantity > 0);
-    
+
         // Get unique applications from the fetch_sales_data endpoint
-        const tileNamesResponse = await fetch('https://obl-chatbot-backend.onrender.com/fetch_sales_data', {
+        const tileNamesResponse = await fetch('http://127.0.0.1:8000/fetch_sales_data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             tile_names: filteredTiles.map(tile => tile.name)
           }),
         });
-    
+
         if (!tileNamesResponse.ok) {
           throw new Error('Failed to fetch tile details');
         }
-    
+
         const tileDetailsData = await tileNamesResponse.json();
-        
+
         // Extract unique applications from the detailed tiles data
         const uniqueApplications = [...new Set(
           tileDetailsData.tiles
             .filter(tile => tile && tile.applications)
-            .flatMap(tile => 
+            .flatMap(tile =>
               tile.applications.split(', ').map(app => app.trim())
             )
         )].sort();
-    
+
         setMessages(prev => [
           ...prev,
           {
@@ -936,7 +938,7 @@ export default function ChatInterface({ setShowChat }) {
       ]);
       try {
         setIsLoading(true);
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/customers');
+        const response = await fetch('http://127.0.0.1:8000/customers');
 
         if (!response.ok) {
           throw new Error('Failed to fetch customers');
@@ -1038,7 +1040,7 @@ export default function ChatInterface({ setShowChat }) {
       const selectedCustomer = action
         .replace('CUSTOMER_NAME_', '')
         .replace(/_/g, ' ');
-    
+
       setMessages(prev => [
         ...prev,
         {
@@ -1047,54 +1049,54 @@ export default function ChatInterface({ setShowChat }) {
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
-    
+
       try {
         setIsLoading(true);
         // First fetch to get tiles and quantities for the customer
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/customer-tiles', {
+        const response = await fetch('http://127.0.0.1:8000/customer-tiles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ customer_name: selectedCustomer })
         });
-    
+
         if (!response.ok) {
           throw new Error('Failed to fetch tiles');
         }
-    
+
         const data = await response.json();
-    
+
         // Filter out tiles with zero quantity
         const filteredTiles = data.tiles.filter(tile => tile.quantity > 0);
-    
+
         // Get unique applications from the fetch_sales_data endpoint
-        const tileNamesResponse = await fetch('https://obl-chatbot-backend.onrender.com/fetch_sales_data', {
+        const tileNamesResponse = await fetch('http://127.0.0.1:8000/fetch_sales_data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             tile_names: filteredTiles.map(tile => tile.name)
           }),
         });
-    
+
         if (!tileNamesResponse.ok) {
           throw new Error('Failed to fetch tile details');
         }
-    
+
         const tileDetailsData = await tileNamesResponse.json();
-        
+
         // Extract unique applications from the detailed tiles data
         const uniqueApplications = [...new Set(
           tileDetailsData.tiles
             .filter(tile => tile && tile.applications)
-            .flatMap(tile => 
+            .flatMap(tile =>
               tile.applications.split(', ').map(app => app.trim())
             )
         )].sort();
         console.log(uniqueApplications);
-    
+
         setMessages(prev => [
           ...prev,
           {
@@ -1127,86 +1129,293 @@ export default function ChatInterface({ setShowChat }) {
       } finally {
         setIsLoading(false);
       }
+    } else if (action === 'TERRITORY_WISE') {
+      try {
+        setIsLoading(true);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'user',
+            content: 'Selected : Territory-wise',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+
+        const response = await fetch('http://127.0.0.1:8000/territory');
+        if (!response.ok) {
+          throw new Error('Failed to fetch territories');
+        }
+
+        const data = await response.json();
+
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'Please select your territory to help me recommend the best tiles for you:',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: data.territories.map(territory => ({
+              label: territory,
+              action: `TERRITORY_${territory.replace(/\s+/g, '_')}`
+            }))
+          }
+        ]);
+      } catch (error) {
+        console.error('Error fetching territories:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'I apologize, but I encountered an error. Please try again.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [{ label: 'Try Again', action: 'RECOMMEND_TILE' }]
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    } 
+    else if (action.startsWith('TERRITORY_')) {
+      const territory = action.replace('TERRITORY_', '').replace(/_/g, ' ');
+      
+      // Save the selected territory in state for later use
+      setSelectedTerritory(territory);
+      
+      setMessages(prev => [
+        ...prev,
+        {
+          type: 'user',
+          content: `Selected territory: ${territory}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    
+      try {
+        setIsLoading(true);
+        const response = await fetch('http://127.0.0.1:8000/territory-tiles', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ territory_name: territory })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch sizes');
+        }
+    
+        const data = await response.json();
+    
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: `Great! Please select a size for the territory ${territory}:`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: data.sizes.map(sizeObj => ({
+              label: `${sizeObj.size} (${sizeObj.quantity})`,
+              action: `STR_${sizeObj.size.replace(/\s+/g, '_')}`
+            }))
+          }
+        ]);
+      } catch (error) {
+        console.error('Error fetching sizes:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'I apologize, but I encountered an error while fetching the sizes. Please try again later.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [{ label: 'Try Again', action: 'RECOMMEND_TILE' }]
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    } 
+    else if (action.startsWith('STR_')) {
+      const size = action.replace('STR_', '').replace(/_/g, ' ');
+       
+      setMessages(prev => [
+        ...prev,
+        {
+          type: 'user',
+          content: `Selected size: ${size}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+       
+      try {
+        setIsLoading(true);
+        // Make sure selectedTerritory is available from state
+        if (!selectedTerritory) {
+          throw new Error('Territory not selected. Please try again.');
+        }
+        
+        // First fetch to get tiles and quantities for the territory and size
+        const response = await fetch('http://127.0.0.1:8000/territory-size-tiles', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            territory_name: selectedTerritory,
+            size: size
+          })
+        });
+       
+        if (!response.ok) {
+          throw new Error('Failed to fetch tiles');
+        }
+       
+        const data = await response.json();
+           
+        // Filter out tiles with zero quantity
+        const filteredTiles = data.tiles.filter(tile => tile.quantity > 0);
+        
+        // Get unique applications from the fetch_sales_data endpoint
+        const tileNamesResponse = await fetch('http://127.0.0.1:8000/fetch_sales_data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tile_names: filteredTiles.map(tile => tile.name)
+          }),
+        });
+        
+        if (!tileNamesResponse.ok) {
+          throw new Error('Failed to fetch tile details');
+        }
+        
+        const tileDetailsData = await tileNamesResponse.json();
+        
+        // Extract unique applications from the detailed tiles data
+        const uniqueApplications = [...new Set(
+          tileDetailsData.tiles
+            .filter(tile => tile && tile.applications)
+            .flatMap(tile =>
+              tile.applications.split(', ').map(app => app.trim())
+            )
+        )].sort();
+        
+        console.log(uniqueApplications);
+        
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'Select the applicable area :',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: uniqueApplications.map(app => ({
+              label: app,
+              action: `APPLICATION_${app.replace(/\s+/g, '_')}`
+            })),
+            metadata: {
+              tiles: tileDetailsData.tiles,
+              quantities: filteredTiles.map(tile => tile.quantity.toString()),
+              selectedTerritory,  // Use selectedTerritory instead of selectedCustomer
+              selectedSize: size  // Add the selected size to metadata
+            }
+          }
+        ]);
+        
+        setTimeout(scrollToBottom, 500);
+      } catch (error) {
+        console.error('Error fetching tiles:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: `I apologize, but I encountered an error: ${error.message}. Please try again later.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [{ label: 'Try Again', action: 'RECOMMEND_TILE' }]
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
     }
     
-   // Application selection handler
-else if (action.startsWith('APPLICATION_')) {
-  const selectedApplication = action
-    .replace('APPLICATION_', '')
-    .replace(/_/g, ' ');
+    
+    // Application selection handler
+    else if (action.startsWith('APPLICATION_')) {
+      const selectedApplication = action
+        .replace('APPLICATION_', '')
+        .replace(/_/g, ' ');
 
-  // Find the last message that contains our original data
-  const dataMessage = messages.findLast(msg => msg.metadata?.tiles && msg.metadata?.quantities);
-  
-  if (!dataMessage) {
-    setMessages(prev => [
-      ...prev,
-      {
-        type: 'bot',
-        content: 'Sorry, I could not find the original tile data. Please start over.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        options: [{ label: 'Start Over', action: 'RECOMMEND_TILE' }]
+      // Find the last message that contains our original data
+      const dataMessage = messages.findLast(msg => msg.metadata?.tiles && msg.metadata?.quantities);
+
+      if (!dataMessage) {
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: 'Sorry, I could not find the original tile data. Please start over.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [{ label: 'Start Over', action: 'RECOMMEND_TILE' }]
+          }
+        ]);
+        return;
       }
-    ]);
-    return;
-  }
 
-  const { tiles, quantities, selectedCustomer } = dataMessage.metadata;
+      const { tiles, quantities, selectedCustomer } = dataMessage.metadata;
 
-  try {
-    // Filter tiles based on selected application
-    const filteredTilesIndices = tiles
-      .map((tile, index) => ({ tile, index }))
-      .filter(({ tile }) => 
-        tile.applications.split(', ').map(app => app.trim())
-          .includes(selectedApplication)
-      );
+      try {
+        // Filter tiles based on selected application
+        const filteredTilesIndices = tiles
+          .map((tile, index) => ({ tile, index }))
+          .filter(({ tile }) =>
+            tile.applications.split(', ').map(app => app.trim())
+              .includes(selectedApplication)
+          );
 
-    const filteredTiles = {
-      tiles: filteredTilesIndices.map(({ tile }) => tile),
-      quantities: filteredTilesIndices.map(({ index }) => quantities[index])
-    };
+        const filteredTiles = {
+          tiles: filteredTilesIndices.map(({ tile }) => tile),
+          quantities: filteredTilesIndices.map(({ index }) => quantities[index])
+        };
 
-    // Calculate totals
-    const total_quantity = filteredTiles.quantities
-      .reduce((sum, qty) => sum + parseInt(qty), 0);
+        // Calculate totals
+        const total_quantity = filteredTiles.quantities
+          .reduce((sum, qty) => sum + parseInt(qty), 0);
 
-    const salesData = {
-      tiles: filteredTiles.tiles,
-      quantities: filteredTiles.quantities,
-      total_unique_tiles: filteredTiles.tiles.length,
-      total_quantity: total_quantity
-    };
+        const salesData = {
+          tiles: filteredTiles.tiles,
+          quantities: filteredTiles.quantities,
+          total_unique_tiles: filteredTiles.tiles.length,
+          total_quantity: total_quantity
+        };
 
-    setMessages(prev => [
-      ...prev,
-      {
-        type: 'user',
-        content: `Selected applicable area : ${selectedApplication}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      },
-      {
-        type: 'bot',
-        content: <Sales salesData={salesData} />,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        // Preserve the original data in metadata for future application selections
-       
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'user',
+            content: `Selected applicable area : ${selectedApplication}`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          },
+          {
+            type: 'bot',
+            content: <Sales salesData={salesData} />,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            // Preserve the original data in metadata for future application selections
+
+          }
+        ]);
+        setTimeout(scrollToBottom, 500);
+      } catch (error) {
+        console.error('Error processing application selection:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            type: 'bot',
+            content: `I apologize, but I encountered an error: ${error.message}. Please try again.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            options: [{ label: 'Try Again', action: 'RECOMMEND_TILE' }]
+          }
+        ]);
       }
-    ]);
-    setTimeout(scrollToBottom, 500);
-  } catch (error) {
-    console.error('Error processing application selection:', error);
-    setMessages(prev => [
-      ...prev,
-      {
-        type: 'bot',
-        content: `I apologize, but I encountered an error: ${error.message}. Please try again.`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        options: [{ label: 'Try Again', action: 'RECOMMEND_TILE' }]
-      }
-    ]);
-  }
-}
+    }
 
     else if (action.toUpperCase().includes('TILES')) {
       // Convert the action to match backend expectations
@@ -1233,7 +1442,7 @@ else if (action.startsWith('APPLICATION_')) {
         setIsLoading(true);
 
         // Updated request to match backend expectations
-        const response = await fetch('https://obl-chatbot-backend.onrender.com/size', {
+        const response = await fetch('http://127.0.0.1:8000/size', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
